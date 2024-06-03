@@ -1,0 +1,18 @@
+---
+Name: discoverer-bifrost
+---
+SilverStripe\Core\Injector\Injector:
+    SilverStripe\Discoverer\Query\Facet\FacetAdaptor:
+        class: SilverStripe\DiscovererBifrost\Query\Facet\FacetAdaptor
+    SilverStripe\Discoverer\Query\Filter\CriteriaAdaptor:
+        class: SilverStripe\DiscovererBifrost\Query\Filter\CriteriaAdaptor
+    SilverStripe\Discoverer\Query\Filter\CriterionAdaptor:
+        class: SilverStripe\DiscovererBifrost\Query\Filter\CriterionAdaptor
+    SilverStripe\Discoverer\Service\SearchServiceAdaptor:
+        class: SilverStripe\DiscovererBifrost\Service\SearchServiceAdaptor
+    Elastic\EnterpriseSearch\Client.searchClient:
+        factory: SilverStripe\DiscovererBifrost\Service\ClientFactory
+        constructor:
+            host: '`BIFROST_ENDPOINT`'
+            token: '`BIFROST_PUBLIC_API_KEY`'
+            http_client: '%$GuzzleHttp\Client'
