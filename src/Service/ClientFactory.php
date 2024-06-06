@@ -9,6 +9,9 @@ use SilverStripe\Core\Injector\Factory;
 class ClientFactory implements Factory
 {
 
+    private const ENDPOINT = 'BIFROST_ENDPOINT';
+    private const PUBLIC_API_KEY = 'BIFROST_PUBLIC_API_KEY';
+
     /**
      * @throws Exception
      */
@@ -21,11 +24,11 @@ class ClientFactory implements Factory
         $missingEnvVars = [];
 
         if (!$host) {
-            $missingEnvVars[] = 'BIFROST_ENDPOINT';
+            $missingEnvVars[] = self::ENDPOINT;
         }
 
         if (!$token) {
-            $missingEnvVars[] = 'BIFROST_PUBLIC_API_KEY';
+            $missingEnvVars[] = self::PUBLIC_API_KEY;
         }
 
         if ($missingEnvVars) {
