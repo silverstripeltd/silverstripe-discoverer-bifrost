@@ -1,48 +1,57 @@
 {
-  "name": "silverstripeltd/discoverer-bifrost",
-  "description": "A plugin module for silverstripeltd/discoverer that provides integration for Silverstripe Bifröst",
-  "type": "silverstripe-vendormodule",
-  "license": "proprietary",
-  "homepage": "https://github.com/silverstripeltd/discoverer-bifrost",
-  "authors": [],
-  "keywords": [
-    "Silverstripe",
-    "Silverstripe CMS",
-    "Search",
-    "Bifröst"
-  ],
-  "require": {
-    "php": "^8.1",
-    "silverstripe/framework": "^5",
-    "silverstripeltd/discoverer": "dev-main",
-    "elastic/enterprise-search": "^8.10",
-    "guzzlehttp/guzzle": "^7.5"
-  },
-  "require-dev": {
-    "phpunit/phpunit": "^9.5",
-    "slevomat/coding-standard": "^8.8"
-  },
-  "repositories": [
-    {
-      "type": "vcs",
-      "url": "git@github.com:silverstripeltd/discoverer.git"
-    }
-  ],
-  "autoload": {
-    "psr-4": {
-      "SilverStripe\\DiscovererBifrost\\": "src/",
-      "SilverStripe\\DiscovererBifrost\\Tests\\": "tests/"
-    }
-  },
-  "config": {
-    "allow-plugins": {
-      "composer/installers": true,
-      "php-http/discovery": true,
-      "silverstripe/vendor-plugin": true,
-      "dealerdirect/phpcodesniffer-composer-installer": true
-    }
-  },
-  "scripts": {
-    "phpcs": "phpcs --standard=phpcs.xml --extensions=php --encoding=utf-8"
-  }
+    "name": "silverstripeltd/discoverer-bifrost",
+    "description": "A plugin module for silverstripeltd/discoverer that provides integration for Silverstripe Bifröst",
+    "type": "silverstripe-vendormodule",
+    "license": "proprietary",
+    "homepage": "https://github.com/silverstripeltd/discoverer-bifrost",
+    "authors": [],
+    "keywords": [
+        "Silverstripe",
+        "Silverstripe CMS",
+        "Search",
+        "Search Service",
+        "Query",
+        "Querying",
+        "Filter",
+        "Filtering"
+    ],
+    "require": {
+        "php": "^8.1",
+        "silverstripe/framework": "^5",
+        "silverstripeltd/discoverer-elastic-enterprise": "dev-main",
+        "guzzlehttp/guzzle": "^7.5"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.5",
+        "slevomat/coding-standard": "^8.8"
+    },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "git@github.com:silverstripeltd/discoverer.git"
+        },
+        {
+            "type": "vcs",
+            "url": "git@github.com:silverstripeltd/discoverer-elastic-enterprise.git"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "SilverStripe\\DiscovererBifrost\\": "src/",
+            "SilverStripe\\DiscovererBifrost\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "composer/installers": true,
+            "php-http/discovery": true,
+            "silverstripe/vendor-plugin": true,
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    },
+    "scripts": {
+        "phpcs": "phpcs --standard=phpcs.xml --extensions=php --encoding=utf-8"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }
