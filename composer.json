@@ -18,7 +18,7 @@
     "require": {
         "php": "^8.1",
         "silverstripe/framework": "^5",
-        "silverstripeltd/discoverer-elastic-enterprise": "dev-main",
+        "silverstripeltd/discoverer-elastic-enterprise": "dev-feature/add-config-condition",
         "guzzlehttp/guzzle": "^7.5"
     },
     "require-dev": {
