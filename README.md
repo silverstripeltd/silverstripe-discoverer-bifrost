@@ -55,7 +55,7 @@ The following environment variables are required for this module to function:
 
 * `BIFROST_ENDPOINT`
 * `BIFROST_ENGINE_PREFIX`
-* `BIFROST_PUBLIC_API_KEY`
+* `BIFROST_QUERY_API_KEY`
 
 ## Usage
 
