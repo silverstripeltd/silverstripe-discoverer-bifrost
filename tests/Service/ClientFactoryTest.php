@@ -28,7 +28,7 @@ class ClientFactoryTest extends SapphireTest
 
     public function testCreateMissingEnvVars(): void
     {
-        $this->expectExceptionMessage('Required ENV vars missing: BIFROST_ENDPOINT, BIFROST_PUBLIC_API_KEY');
+        $this->expectExceptionMessage('Required ENV vars missing: BIFROST_ENDPOINT, BIFROST_QUERY_API_KEY');
 
         $clientFactory = new ClientFactory();
         // Expect this to throw our Exception as no params have been passed

@@ -10,7 +10,7 @@ class ClientFactory implements Factory
 {
 
     private const ENDPOINT = 'BIFROST_ENDPOINT';
-    private const PUBLIC_API_KEY = 'BIFROST_PUBLIC_API_KEY';
+    private const QUERY_API_KEY = 'BIFROST_QUERY_API_KEY';
 
     /**
      * @throws Exception
@@ -28,7 +28,7 @@ class ClientFactory implements Factory
         }
 
         if (!$token) {
-            $missingEnvVars[] = self::PUBLIC_API_KEY;
+            $missingEnvVars[] = self::QUERY_API_KEY;
         }
 
         if ($missingEnvVars) {
