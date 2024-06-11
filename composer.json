@@ -2,9 +2,14 @@
     "name": "silverstripeltd/discoverer-bifrost",
     "description": "A plugin module for silverstripeltd/discoverer that provides integration for Silverstripe Bifröst",
     "type": "silverstripe-vendormodule",
-    "license": "proprietary",
+    "license": "BSD-3-Clause",
     "homepage": "https://github.com/silverstripeltd/discoverer-bifrost",
-    "authors": [],
+    "authors": [
+        {
+            "name": "Christopher David Penny",
+            "email": "chris.penny@gmail.com"
+        }
+    ],
     "keywords": [
         "Silverstripe",
         "Silverstripe CMS",
