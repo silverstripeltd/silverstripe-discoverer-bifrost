@@ -1,7 +1,7 @@
 {
-    "name": "discoverer-bifrost",
-    "description": "A plugin module for silverstripeltd/discoverer that provides integration for Silverstripe Bifröst",
+    "name": "silverstripe-discoverer-bifrost",
+    "description": "A plugin module for silverstripe/silverstripe-discoverer that provides integration for Silverstripe Bifröst",
     "main": "README.md",
-    "repository": "https://github.com/silverstripeltd/discoverer-bifrost.git",
+    "repository": "https://github.com/silverstripeltd/silverstripe-discoverer-bifrost.git",
     "author": "Silverstripe Ltd"
 }
