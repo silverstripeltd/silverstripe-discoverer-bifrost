@@ -4,9 +4,24 @@ Only:
     envvarset: 'BIFROST_QUERY_API_KEY'
 ---
 SilverStripe\Core\Injector\Injector:
+    SilverStripe\Discoverer\Query\Facet\FacetAdaptor:
+        class: SilverStripe\DiscovererElasticEnterprise\Query\Facet\FacetAdaptor
+    SilverStripe\Discoverer\Query\Filter\CriteriaAdaptor:
+        class: SilverStripe\DiscovererElasticEnterprise\Query\Filter\CriteriaAdaptor
+    SilverStripe\Discoverer\Query\Filter\CriterionAdaptor:
+        class: SilverStripe\DiscovererElasticEnterprise\Query\Filter\CriterionAdaptor
+    SilverStripe\Discoverer\Service\SearchServiceAdaptor:
+        class: SilverStripe\DiscovererElasticEnterprise\Service\SearchServiceAdaptor
     Elastic\EnterpriseSearch\Client.searchClient:
         factory: SilverStripe\DiscovererBifrost\Service\ClientFactory
         constructor:
             host: '`BIFROST_ENDPOINT`'
             token: '`BIFROST_QUERY_API_KEY`'
             http_client: '%$GuzzleHttp\Client'
+    Elastic\EnterpriseSearch\AppSearch\Request\Search:
+        class: SilverStripe\DiscovererBifrost\Service\Requests\Search
+    Elastic\EnterpriseSearch\AppSearch\Request\LogClickthrough:
+        class: SilverStripe\DiscovererBifrost\Service\Requests\ClickPost
+
+SilverStripe\DiscovererElasticEnterprise\Service\SearchServiceAdaptor:
+    prefix_env_var: 'BIFROST_ENGINE_PREFIX'
