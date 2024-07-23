@@ -24,7 +24,7 @@ BIFROST_QUERY_API_KEY="abc.123.xyz"
 
 ## Usage
 
-Please see the documentation provided in (Discoverer)[https://github.com/silverstripeltd/silverstripe-discoverer].
+Please see the documentation provided in [Discoverer](https://github.com/silverstripeltd/silverstripe-discoverer).
 
 As mentioned above, this module serves as an "adaptor provider" for Discoverer. Besides the installation steps above,
 you shouldn't really be interacting with this module in your code.
