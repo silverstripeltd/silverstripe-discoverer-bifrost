@@ -22,6 +22,8 @@ SilverStripe\Core\Injector\Injector:
         class: SilverStripe\DiscovererBifrost\Service\Requests\Search
     Elastic\EnterpriseSearch\AppSearch\Request\LogClickthrough:
         class: SilverStripe\DiscovererBifrost\Service\Requests\ClickPost
+    Elastic\EnterpriseSearch\AppSearch\Request\QuerySuggestion:
+        class: SilverStripe\DiscovererBifrost\Service\Requests\QuerySuggestion
 
 SilverStripe\DiscovererElasticEnterprise\Service\SearchServiceAdaptor:
     prefix_env_var: 'BIFROST_ENGINE_PREFIX'
