@@ -12,7 +12,7 @@ class ClickPost extends AppSearchLogClickthrough
     {
         parent::__construct($engineName, $click_params);
 
-        $this->path = sprintf('/api/v1/%s/click/', $engineName);
+        $this->path = sprintf('/api/v1/%s/click', $engineName);
     }
 
 }
