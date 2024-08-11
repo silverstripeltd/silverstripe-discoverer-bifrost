@@ -12,7 +12,7 @@ class Search extends AppSearchSearch
     {
         parent::__construct($engineName, $search_request_params);
 
-        $this->path = sprintf('/api/v1/%s/search/', $engineName);
+        $this->path = sprintf('/api/v1/%s/search', $engineName);
     }
 
 }
