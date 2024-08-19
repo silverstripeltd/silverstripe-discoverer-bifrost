@@ -12,7 +12,7 @@ class QuerySuggestion extends AppSearchQuerySuggestion
     {
         parent::__construct($engineName, $query_suggestion_request);
 
-        $this->path = sprintf('/api/v1/%s/query_suggestion/', $engineName);
+        $this->path = sprintf('/api/v1/%s/query_suggestion', $engineName);
     }
 
 }
