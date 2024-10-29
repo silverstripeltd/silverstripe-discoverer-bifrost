@@ -8,9 +8,9 @@ use Elastic\EnterpriseSearch\AppSearch\Schema\ClickParams;
 class ClickPost extends AppSearchLogClickthrough
 {
 
-    public function __construct(string $engineName, ?ClickParams $click_params = null)
+    public function __construct(string $engineName, ?ClickParams $params = null)
     {
-        parent::__construct($engineName, $click_params);
+        parent::__construct($engineName, $params);
 
         $this->path = sprintf('/api/v1/%s/click', $engineName);
     }

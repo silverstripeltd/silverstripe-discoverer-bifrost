@@ -1,0 +1,12 @@
+---
+Name: discoverer-bifrost-factory
+Only:
+  envvarset: 'BIFROST_QUERY_API_KEY'
+---
+SilverStripe\Core\Injector\Injector:
+  Elastic\EnterpriseSearch\Client.searchClient:
+    factory: SilverStripe\DiscovererBifrost\Service\ClientFactory
+    constructor:
+      host: '`BIFROST_ENDPOINT`'
+      token: '`BIFROST_QUERY_API_KEY`'
+      http_client: '%$GuzzleHttp\Client'
