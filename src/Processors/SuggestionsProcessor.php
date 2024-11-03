@@ -4,6 +4,7 @@ namespace SilverStripe\DiscovererBifrost\Processors;
 
 use Exception;
 use SilverStripe\Core\Injector\Injectable;
+use SilverStripe\Discoverer\Service\Results\Field;
 use SilverStripe\Discoverer\Service\Results\Suggestions;
 
 class SuggestionsProcessor
@@ -19,7 +20,14 @@ class SuggestionsProcessor
         // Check that we have all critical fields in our Elastic response
         $this->validateResponse($response);
 
-        $suggestions->setSuggestions($response['results'] ?? []);
+        $results = $response['results'] ?? [];
+
+        foreach ($results as $result) {
+            $suggestions->addSuggestion(Field::create(
+                $result['raw'] ?? null,
+                $result['snippet'] ?? null,
+            ));
+        }
     }
 
     private function validateResponse(array $response): void

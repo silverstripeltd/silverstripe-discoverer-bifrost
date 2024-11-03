@@ -15,6 +15,7 @@ class SuggestionParamsProcessor
     {
         $suggestionParams = SuggestionParams::create();
         $suggestionParams->query = $suggestion->getQueryString();
+        $suggestionParams->formatted = $suggestion->isFormatted();
 
         $limit = $suggestion->getLimit();
         $fields = $suggestion->getFields();

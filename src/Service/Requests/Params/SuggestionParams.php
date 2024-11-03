@@ -15,4 +15,6 @@ class SuggestionParams
 
     public ?int $size = null;
 
+    public bool $formatted = false;
+
 }
