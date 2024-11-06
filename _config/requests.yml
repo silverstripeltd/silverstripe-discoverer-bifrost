@@ -1,0 +1,10 @@
+---
+Name: discoverer-bifrost-requests
+Only:
+  envvarset: 'BIFROST_QUERY_API_KEY'
+---
+SilverStripe\Core\Injector\Injector:
+  Elastic\EnterpriseSearch\AppSearch\Request\Search:
+    class: SilverStripe\DiscovererBifrost\Service\Requests\Search
+  Elastic\EnterpriseSearch\AppSearch\Request\LogClickthrough:
+    class: SilverStripe\DiscovererBifrost\Service\Requests\ClickPost
