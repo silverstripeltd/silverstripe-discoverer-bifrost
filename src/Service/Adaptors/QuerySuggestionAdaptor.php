@@ -35,7 +35,7 @@ class QuerySuggestionAdaptor extends BaseAdaptor implements QuerySuggestionAdapt
             // If we got this far, then the request was a success
             $suggestions->setSuccess(true);
         } catch (ClientErrorResponseException $e) {
-            $errors = (string)$e->getResponse()->getBody();
+            $errors = (string) $e->getResponse()->getBody();
             // Log the error without breaking the page
             $this->getLogger()->error(sprintf('Bifrost error: %s', $errors), ['bifrost' => $e]);
             // Our request was not a success

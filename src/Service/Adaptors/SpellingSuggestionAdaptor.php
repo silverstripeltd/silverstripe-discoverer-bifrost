@@ -3,6 +3,7 @@
 namespace SilverStripe\DiscovererBifrost\Service\Adaptors;
 
 use Elastic\EnterpriseSearch\Exception\ClientErrorResponseException;
+use Elastic\EnterpriseSearch\Response\Response;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Discoverer\Query\Suggestion;
 use SilverStripe\Discoverer\Service\Interfaces\SpellingSuggestionAdaptor as SpellingSuggestionAdaptorInterface;
@@ -12,7 +13,6 @@ use SilverStripe\DiscovererBifrost\Processors\SuggestionsProcessor;
 use SilverStripe\DiscovererBifrost\Service\Requests\SpellingSuggestion;
 use SilverStripe\DiscovererElasticEnterprise\Service\Adaptors\BaseAdaptor;
 use Throwable;
-use Elastic\EnterpriseSearch\Response\Response;
 
 class SpellingSuggestionAdaptor extends BaseAdaptor implements SpellingSuggestionAdaptorInterface
 {
