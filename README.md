@@ -1,5 +1,18 @@
 # 🧭 Silverstripe Discoverer > <img src="https://www.silverstripe.com/favicon.ico" style="height:40px; vertical-align:middle"/> Silverstripe Search
 
+<!-- TOC -->
+* [🧭 Silverstripe Discoverer > <img src="https://www.silverstripe.com/favicon.ico" style="height:40px; vertical-align:middle"/> Silverstripe Search](#-silverstripe-discoverer--img-srchttpswwwsilverstripecomfaviconico-styleheight40px-vertical-alignmiddle-silverstripe-search)
+  * [Purpose](#purpose)
+  * [Installation](#installation)
+  * [Engine vs Index](#engine-vs-index)
+  * [Specify environment variables](#specify-environment-variables)
+    * [Understanding your engine prefix and suffix:](#understanding-your-engine-prefix-and-suffix)
+  * [Usage](#usage)
+    * [Building a query](#building-a-query)
+    * [Processing results](#processing-results)
+    * [Understanding fields and results](#understanding-fields-and-results)
+<!-- TOC -->
+
 ## Purpose
 
 Perform search queries on your Silverstripe Search data through Silverstripe CMS controllers.
