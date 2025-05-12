@@ -2,24 +2,29 @@
 
 namespace SilverStripe\DiscovererBifrost\Service;
 
-use Elastic\EnterpriseSearch\Client;
 use Exception;
+use Http\Client\Common\Plugin\AddHostPlugin;
+use Http\Client\Common\Plugin\AddPathPlugin;
+use Http\Client\Common\Plugin\HeaderAppendPlugin;
+use Http\Client\Common\PluginClient;
+use Http\Discovery\Psr17FactoryDiscovery;
 use SilverStripe\Core\Injector\Factory;
+use Silverstripe\Search\Client\Client;
 
 class ClientFactory implements Factory
 {
 
-    private const ENDPOINT = 'BIFROST_ENDPOINT';
-    private const QUERY_API_KEY = 'BIFROST_QUERY_API_KEY';
+    private const string ENDPOINT = 'BIFROST_ENDPOINT';
+    private const string QUERY_API_KEY = 'BIFROST_QUERY_API_KEY';
 
     /**
      * @throws Exception
      */
-    public function create(mixed $service, array $params = []) // phpcs:ignore SlevomatCodingStandard.TypeHints
+    public function create(string $service, array $params = []): ?object
     {
         $host = $params['host'] ?? null;
         $token = $params['token'] ?? null;
-        $httpClient = $params['http_client'] ?? null;
+        $httpClient = $params['httpClient'] ?? null;
 
         $missingEnvVars = [];
 
@@ -35,22 +40,22 @@ class ClientFactory implements Factory
             throw new Exception(sprintf('Required ENV vars missing: %s', implode(', ', $missingEnvVars)));
         }
 
-        if (!$httpClient) {
-            throw new Exception('http_client required');
-        }
-
-        $config = [
-            'host' => $host,
-            'app-search' => [
-                'token' => $token,
-            ],
-            'enterprise-search' => [
-                'token' => $token,
-            ],
-            'client' => $httpClient,
+        $plugins = [
+            new AddHostPlugin(Psr17FactoryDiscovery::findUriFactory()->createUri($host)),
+            new AddPathPlugin(Psr17FactoryDiscovery::findUriFactory()->createUri('/api/v1')),
+            new HeaderAppendPlugin([
+                'Authorization' => 'Bearer ' . $token,
+            ]),
         ];
 
-        return new Client($config);
+        if ($httpClient) {
+            // If a desired HTTP Client has been defined and instantiated in config (@see config.yml) then we'll
+            // apply the plugins and return it here
+            return Client::create(new PluginClient($httpClient, $plugins));
+        }
+
+        // If no client is defined, then it will be left up to PSR-18 "discovery"
+        return Client::create(null, $plugins);
     }
 
 }
