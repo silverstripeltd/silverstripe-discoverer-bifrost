@@ -17,7 +17,7 @@ class SuggestionsProcessor
      */
     public function getProcessedSuggestions(Suggestions $suggestions, array $response): void
     {
-        // Check that we have all critical fields in our Elastic response
+        // Check that we have all critical fields in our Bifröst response
         $this->validateResponse($response);
 
         $results = $response['results'] ?? [];
@@ -34,10 +34,10 @@ class SuggestionsProcessor
     {
         // If any errors are present, then let's throw and track what they were
         if (array_key_exists('errors', $response)) {
-            throw new Exception(sprintf('Elastic response contained errors: %s', json_encode($response['errors'])));
+            throw new Exception(sprintf('Bifröst response contained errors: %s', json_encode($response['errors'])));
         }
 
-        // The top level fields that we expect to receive from Elastic for each search
+        // The top level fields that we expect to receive from Bifröst for each search
         $results = $response['results'] ?? null;
 
         // Specifically checking is_array(), because an empty results array is a valid response

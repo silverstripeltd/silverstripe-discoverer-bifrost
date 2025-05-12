@@ -4,6 +4,7 @@ namespace SilverStripe\DiscovererBifrost\Tests\Service;
 
 use Elastic\EnterpriseSearch\Client;
 use GuzzleHttp\Client as GuzzleClient;
+use SilverStripe\Core\Environment;
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\Discoverer\Service\SearchService;
 use SilverStripe\DiscovererBifrost\Service\ClientFactory;
@@ -28,6 +29,9 @@ class ClientFactoryTest extends SapphireTest
 
     public function testCreateMissingEnvVars(): void
     {
+        Environment::setEnv('BIFROST_ENDPOINT', null);
+        Environment::setEnv('BIFROST_QUERY_API_KEY', null);
+
         $this->expectExceptionMessage('Required ENV vars missing: BIFROST_ENDPOINT, BIFROST_QUERY_API_KEY');
 
         $clientFactory = new ClientFactory();

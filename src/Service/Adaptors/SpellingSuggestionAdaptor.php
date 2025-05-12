@@ -11,7 +11,6 @@ use SilverStripe\Discoverer\Service\Results\Suggestions;
 use SilverStripe\DiscovererBifrost\Processors\SuggestionParamsProcessor;
 use SilverStripe\DiscovererBifrost\Processors\SuggestionsProcessor;
 use SilverStripe\DiscovererBifrost\Service\Requests\SpellingSuggestion;
-use SilverStripe\DiscovererElasticEnterprise\Service\Adaptors\BaseAdaptor;
 use Throwable;
 
 class SpellingSuggestionAdaptor extends BaseAdaptor implements SpellingSuggestionAdaptorInterface
@@ -20,7 +19,7 @@ class SpellingSuggestionAdaptor extends BaseAdaptor implements SpellingSuggestio
     public function process(Suggestion $suggestion, string $indexName): Suggestions
     {
         // Instantiate our Suggestions class with empty data. This will still be returned if there is an Exception
-        // during communication with Elastic (so that the page doesn't seriously break)
+        // during communication with Bifröst (so that the page doesn't seriously break)
         $suggestions = Suggestions::create();
 
         try {
