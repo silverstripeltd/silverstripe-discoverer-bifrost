@@ -2,11 +2,10 @@
 
 namespace SilverStripe\DiscovererBifrost\Service\Requests;
 
-use Elastic\EnterpriseSearch\Request\Request;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\DiscovererBifrost\Service\Requests\Params\SuggestionParams;
 
-class QuerySuggestion extends Request
+class QuerySuggestion
 {
 
     use Injectable;

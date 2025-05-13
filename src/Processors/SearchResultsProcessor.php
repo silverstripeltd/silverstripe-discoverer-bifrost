@@ -14,8 +14,9 @@ use SilverStripe\Discoverer\Service\Results\FacetData;
 use SilverStripe\Discoverer\Service\Results\Field;
 use SilverStripe\Discoverer\Service\Results\Record;
 use SilverStripe\Discoverer\Service\Results\Results;
+use stdClass;
 
-class ResultsProcessor
+class SearchResultsProcessor
 {
 
     use Configurable;
@@ -35,7 +36,7 @@ class ResultsProcessor
     /**
      * @throws Exception
      */
-    public function getProcessedResults(Results $results, array $response): void
+    public function getProcessedResults(Results $results, stdClass $response): void
     {
         // Check that we have all critical fields in our Bifröst response
         $this->validateResponse($response);
@@ -48,16 +49,16 @@ class ResultsProcessor
     /**
      * @throws Exception
      */
-    private function validateResponse(array $response): void
+    private function validateResponse(stdClass $response): void
     {
         // If any errors are present, then let's throw and track what they were
-        if (array_key_exists('errors', $response)) {
-            throw new Exception(sprintf('Bifröst response contained errors: %s', json_encode($response['errors'])));
+        if (property_exists($response, 'errors')) {
+            throw new Exception(sprintf('Bifröst response contained errors: %s', json_encode($response->errors)));
         }
 
         // The top level fields that we expect to receive from Bifröst for each search
-        $meta = $response['meta'] ?? null;
-        $results = $response['results'] ?? null;
+        $meta = $response->meta ?? null;
+        $results = $response->results ?? null;
         // Check if any required fields are missing
         $missingTopLevelFields = [];
 
@@ -80,24 +81,24 @@ class ResultsProcessor
         }
 
         // We expect every search to contain a value for `request_id`
-        $requestId = $meta['request_id'] ?? null;
+        $requestId = $meta->request_id ?? null;
 
         if (!$requestId) {
             throw new Exception('Expected value for meta.request_id');
         }
 
-        $engineName = $meta['engine']['name'] ?? null;
+        $engineName = $meta->engine->name ?? null;
 
         if (!$engineName) {
             throw new Exception('Expected value for meta.engine.name');
         }
 
         // We expect every search to contain pagination results, even if there is only 1 page of 0 results
-        $pagination = $meta['page'] ?? null;
+        $pagination = $meta->page ?? null;
 
         // Ensure we have pagination results
-        if (!is_array($pagination)) {
-            throw new Exception('Missing array structure for meta.page in Bifröst search response');
+        if (!$pagination) {
+            throw new Exception('Missing structure for meta.page in Bifröst search response');
         }
 
         $missingPaginationFields = [];
@@ -109,7 +110,7 @@ class ResultsProcessor
         ];
 
         foreach ($expectedPagination as $expectedKey) {
-            if (array_key_exists($expectedKey, $pagination)) {
+            if (property_exists($pagination, $expectedKey)) {
                 continue;
             }
 
@@ -124,18 +125,18 @@ class ResultsProcessor
         }
     }
 
-    private function processMetaData(Results $results, array $response): void
+    private function processMetaData(Results $results, stdClass $response): void
     {
-        $pageSize = $response['meta']['page']['size'] ?? 0;
+        $pageSize = $response->meta->page->size ?? 0;
         $pageLimit = $this->config()->get('bifrost_page_limit') ?? 0;
         $resultsLimit = $this->config()->get('bifrost_results_limit') ?? 0;
-        $currentPage = $response['meta']['page']['current'] ?? 1;
+        $currentPage = $response->meta->page->current ?? 1;
 
         // Calculate the total paginated results that can be handled, taking into account the default Bifröst limits.
         // The page size also needs to be considered here so that we only handle the number of results rendered
         // on the first 100 pages (bifrost_page_limit * $pageSize).
         $totalResults = min([
-            $response['meta']['page']['total_results'] ?? 0,
+            $response->meta->page->total_results ?? 0,
             $pageLimit * $pageSize,
             $resultsLimit,
         ]);
@@ -150,15 +151,15 @@ class ResultsProcessor
     /**
      * @throws Exception
      */
-    private function processRecords(Results $results, array $response): void
+    private function processRecords(Results $results, stdClass $response): void
     {
-        if (!array_key_exists('results', $response)) {
+        if (!property_exists($response, 'results')) {
             throw new Exception('Bifröst Response contained no results array');
         }
 
         // Only used if analytics are enabled
-        $requestId = $response['meta']['request_id'] ?? null;
-        $engineName = $response['meta']['engine']['name'] ?? null;
+        $requestId = $response->meta->request_id ?? null;
+        $engineName = $response->meta->engine->name ?? null;
         // Check if any required fields are missing
         $missingRequiredFields = [];
 
@@ -178,15 +179,15 @@ class ResultsProcessor
 
         $queryString = $results->getQuery()->getQueryString();
 
-        foreach ($response['results'] as $result) {
+        foreach ($response->results as $result) {
             $record = Record::create();
 
             foreach ($result as $fieldName => $valueFields) {
                 // Convert snake_case (Bifröst's field name format) to PascalCase (Silverstripe's field name format)
                 $formattedFieldName = FieldService::singleton()->getConvertedFieldName($fieldName);
 
-                $raw = $valueFields['raw'] ?? null;
-                $snippet = $valueFields['snippet'] ?? null;
+                $raw = $valueFields->raw ?? null;
+                $snippet = $valueFields->snippet ?? null;
 
                 $field = Field::create($raw, $snippet);
 
@@ -197,7 +198,7 @@ class ResultsProcessor
             if (Environment::getEnv(AnalyticsMiddleware::ENV_ANALYTICS_ENABLED)) {
                 // This field should always be there, as it's the default ID field in Bifröst. We won't break stuff
                 // if it isn't there though - better that search works without analytics
-                $documentId = $result['id']['raw'] ?? null;
+                $documentId = $result->id->raw ?? null;
 
                 $analyticsData = AnalyticsData::create();
                 $analyticsData->setQueryString($queryString);
@@ -212,9 +213,9 @@ class ResultsProcessor
         }
     }
 
-    private function processFacets(Results $results, array $response): void
+    private function processFacets(Results $results, stdClass $response): void
     {
-        $facets = $response['facets'] ?? null;
+        $facets = $response->facets ?? null;
 
         if (!is_array($facets)) {
             return;
@@ -224,15 +225,15 @@ class ResultsProcessor
             foreach ($facetResults as $facetResult) {
                 $facet = Facet::create();
                 $facet->setFieldName($fieldName);
-                $facet->setName($facetResult['name'] ?? null);
-                $facet->setType($facetResult['type'] ?? null);
+                $facet->setName($facetResult->name ?? null);
+                $facet->setType($facetResult->type ?? null);
 
-                foreach ($facetResult['data'] as $resultData) {
+                foreach ($facetResult->data as $resultData) {
                     $facetData = FacetData::create();
-                    $facetData->setValue($resultData['value'] ?? '');
-                    $facetData->setFrom($resultData['from'] ?? '');
-                    $facetData->setTo($resultData['to'] ?? '');
-                    $facetData->setCount($resultData['count'] ?? '');
+                    $facetData->setValue($resultData->value ?? '');
+                    $facetData->setFrom($resultData->from ?? '');
+                    $facetData->setTo($resultData->to ?? '');
+                    $facetData->setCount($resultData->count ?? '');
 
                     $facet->addData($facetData);
                 }

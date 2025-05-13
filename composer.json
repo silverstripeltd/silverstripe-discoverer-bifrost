@@ -24,8 +24,7 @@
         "php": "^8.1",
         "silverstripe/framework": "^5",
         "silverstripe/silverstripe-discoverer": "^2.1.0",
-        "silverstripe/silverstripe-search-client": "dev-feature/AOS-209-initial-client as 1.0.0",
-        "elastic/enterprise-search": "^8.6",
+        "silverstripe/silverstripe-search-client-php": "dev-main as 1.0.0",
         "guzzlehttp/guzzle": "^7.5"
     },
     "require-dev": {
@@ -34,8 +33,8 @@
     },
     "repositories": [
         {
-            "type": "git",
-            "url": "git@github.com:silverstripeltd/silverstripe-search-client.git"
+            "type": "vcs",
+            "url": "https://github.com/silverstripeltd/silverstripe-search-client-php.git"
         }
     ],
     "autoload": {

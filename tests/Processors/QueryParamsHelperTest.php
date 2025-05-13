@@ -15,7 +15,7 @@ use SilverStripe\Discoverer\Query\Filter\CriteriaAdaptor as CriteriaAdaptorInter
 use SilverStripe\Discoverer\Query\Filter\Criterion;
 use SilverStripe\Discoverer\Query\Filter\CriterionAdaptor as CriterionAdaptorInterface;
 use SilverStripe\Discoverer\Query\Query;
-use SilverStripe\DiscovererBifrost\Processors\QueryParamsProcessor;
+use SilverStripe\DiscovererBifrost\Processors\SearchRequestProcessor;
 use SilverStripe\DiscovererBifrost\Query\Facet\FacetAdaptor;
 use SilverStripe\DiscovererBifrost\Query\Filter\CriteriaAdaptor;
 use SilverStripe\DiscovererBifrost\Query\Filter\CriterionAdaptor;
@@ -27,7 +27,7 @@ class QueryParamsHelperTest extends SapphireTest
 {
 
     /**
-     * This test only covers the basic functions performed in @see QueryParamsProcessor::getFacetsFromQuery()
+     * This test only covers the basic functions performed in @see SearchRequestProcessor::getFacetsFromQuery()
      *
      * @see FacetAdaptorTest for test coverage rearding preparation of facets
      */
@@ -35,12 +35,12 @@ class QueryParamsHelperTest extends SapphireTest
     {
         $query = Query::create();
 
-        /** @see QueryParamsProcessor::getFacetsFromQuery() */
-        $reflectionMethod = new ReflectionMethod(QueryParamsProcessor::class, 'getFacetsFromQuery');
+        /** @see SearchRequestProcessor::getFacetsFromQuery() */
+        $reflectionMethod = new ReflectionMethod(SearchRequestProcessor::class, 'getFacetsFromQuery');
         $reflectionMethod->setAccessible(true);
 
         // First test that the value is null if no facets are set
-        $this->assertNull($reflectionMethod->invoke(QueryParamsProcessor::singleton(), $query));
+        $this->assertNull($reflectionMethod->invoke(SearchRequestProcessor::singleton(), $query));
 
         $facetOne = Facet::create();
         $facetOne->setType(Facet::TYPE_VALUE);
@@ -57,14 +57,14 @@ class QueryParamsHelperTest extends SapphireTest
         $query->addFacet($facetTwo);
 
         /** @var SimpleObject $facets */
-        $facets = $reflectionMethod->invoke(QueryParamsProcessor::singleton(), $query);
+        $facets = $reflectionMethod->invoke(SearchRequestProcessor::singleton(), $query);
 
         $this->assertObjectHasProperty('fieldName1', $facets);
         $this->assertObjectHasProperty('fieldName2', $facets);
     }
 
     /**
-     * This test only covers the basic functions performed in @see QueryParamsProcessor::getFiltersFromQuery()
+     * This test only covers the basic functions performed in @see SearchRequestProcessor::getFiltersFromQuery()
      *
      * @see CriteriaAdaptorTest for test coverage regarding preparation of filters
      */
@@ -72,19 +72,19 @@ class QueryParamsHelperTest extends SapphireTest
     {
         $query = Query::create();
 
-        /** @see QueryParamsProcessor::getFiltersFromQuery() */
-        $reflectionMethod = new ReflectionMethod(QueryParamsProcessor::class, 'getFiltersFromQuery');
+        /** @see SearchRequestProcessor::getFiltersFromQuery() */
+        $reflectionMethod = new ReflectionMethod(SearchRequestProcessor::class, 'getFiltersFromQuery');
         $reflectionMethod->setAccessible(true);
 
         // First test that the value is null if no filters are set
-        $this->assertNull($reflectionMethod->invoke(QueryParamsProcessor::singleton(), $query));
+        $this->assertNull($reflectionMethod->invoke(SearchRequestProcessor::singleton(), $query));
 
         // Set filter and retest
         $query->filter('field1', 'value1', Criterion::EQUAL);
         $query->filter('field2', 'value2', Criterion::NOT_EQUAL);
 
         /** @var SimpleObject $filters */
-        $filters = $reflectionMethod->invoke(QueryParamsProcessor::singleton(), $query);
+        $filters = $reflectionMethod->invoke(SearchRequestProcessor::singleton(), $query);
 
         $this->assertCount(1, $filters->all);
         $this->assertCount(0, $filters->any);
@@ -105,7 +105,7 @@ class QueryParamsHelperTest extends SapphireTest
         $query->filter($criteria);
 
         /** @var SimpleObject $filters */
-        $filters = $reflectionMethod->invoke(QueryParamsProcessor::singleton(), $query);
+        $filters = $reflectionMethod->invoke(SearchRequestProcessor::singleton(), $query);
 
         $this->assertCount(0, $filters->all);
         $this->assertCount(2, $filters->any);
@@ -116,18 +116,18 @@ class QueryParamsHelperTest extends SapphireTest
     {
         $query = Query::create();
 
-        /** @see QueryParamsProcessor::getPaginationFromQuery() */
-        $reflectionMethod = new ReflectionMethod(QueryParamsProcessor::class, 'getPaginationFromQuery');
+        /** @see SearchRequestProcessor::getPaginationFromQuery() */
+        $reflectionMethod = new ReflectionMethod(SearchRequestProcessor::class, 'getPaginationFromQuery');
         $reflectionMethod->setAccessible(true);
 
         // First test that the value is null if no pagination is set
-        $this->assertNull($reflectionMethod->invoke(QueryParamsProcessor::singleton(), $query));
+        $this->assertNull($reflectionMethod->invoke(SearchRequestProcessor::singleton(), $query));
 
         // Set pagination and retest
         $query->setPagination(10, 0);
 
         /** @var PaginationResponseObject $pagination */
-        $pagination = $reflectionMethod->invoke(QueryParamsProcessor::singleton(), $query);
+        $pagination = $reflectionMethod->invoke(SearchRequestProcessor::singleton(), $query);
 
         $this->assertEquals(10, $pagination->size);
         $this->assertEquals(1, $pagination->current);
@@ -136,7 +136,7 @@ class QueryParamsHelperTest extends SapphireTest
         $query->setPagination(10, 20);
 
         /** @var PaginationResponseObject $pagination */
-        $pagination = $reflectionMethod->invoke(QueryParamsProcessor::singleton(), $query);
+        $pagination = $reflectionMethod->invoke(SearchRequestProcessor::singleton(), $query);
 
         $this->assertEquals(10, $pagination->size);
         $this->assertEquals(3, $pagination->current);
@@ -146,12 +146,12 @@ class QueryParamsHelperTest extends SapphireTest
     {
         $query = Query::create();
 
-        /** @see QueryParamsProcessor::getResultFieldsFromQuery() */
-        $reflectionMethod = new ReflectionMethod(QueryParamsProcessor::class, 'getResultFieldsFromQuery');
+        /** @see SearchRequestProcessor::getResultFieldsFromQuery() */
+        $reflectionMethod = new ReflectionMethod(SearchRequestProcessor::class, 'getResultFieldsFromQuery');
         $reflectionMethod->setAccessible(true);
 
         // First test that the value is null if no result fields are set
-        $this->assertNull($reflectionMethod->invoke(QueryParamsProcessor::singleton(), $query));
+        $this->assertNull($reflectionMethod->invoke(SearchRequestProcessor::singleton(), $query));
 
         // Set result fields and retest
         $query->addResultField('field1');
@@ -162,7 +162,7 @@ class QueryParamsHelperTest extends SapphireTest
         $query->addResultField('field4', 20, true);
 
         /** @var SimpleObject $resultsFields */
-        $resultsFields = $reflectionMethod->invoke(QueryParamsProcessor::singleton(), $query);
+        $resultsFields = $reflectionMethod->invoke(SearchRequestProcessor::singleton(), $query);
 
         // Check that we have our two default result fields
         $this->assertObjectHasProperty('record_base_class', $resultsFields);
@@ -205,12 +205,12 @@ class QueryParamsHelperTest extends SapphireTest
     {
         $query = Query::create();
 
-        /** @see QueryParamsProcessor::getSearchFieldsFromQuery() */
-        $reflectionMethod = new ReflectionMethod(QueryParamsProcessor::class, 'getSearchFieldsFromQuery');
+        /** @see SearchRequestProcessor::getSearchFieldsFromQuery() */
+        $reflectionMethod = new ReflectionMethod(SearchRequestProcessor::class, 'getSearchFieldsFromQuery');
         $reflectionMethod->setAccessible(true);
 
         // First test that the value is null if no search fields are set
-        $this->assertNull($reflectionMethod->invoke(QueryParamsProcessor::singleton(), $query));
+        $this->assertNull($reflectionMethod->invoke(SearchRequestProcessor::singleton(), $query));
 
         // Set search fields and retest
         // No weight
@@ -219,7 +219,7 @@ class QueryParamsHelperTest extends SapphireTest
         $query->addSearchField('field2', 2);
 
         /** @var SearchFields $searchFields */
-        $searchFields = $reflectionMethod->invoke(QueryParamsProcessor::singleton(), $query);
+        $searchFields = $reflectionMethod->invoke(SearchRequestProcessor::singleton(), $query);
 
         $this->assertObjectHasProperty('field1', $searchFields);
         $this->assertObjectHasProperty('field2', $searchFields);
@@ -236,12 +236,12 @@ class QueryParamsHelperTest extends SapphireTest
     {
         $query = Query::create();
 
-        /** @see QueryParamsProcessor::getSortFromQuery() */
-        $reflectionMethod = new ReflectionMethod(QueryParamsProcessor::class, 'getSortFromQuery');
+        /** @see SearchRequestProcessor::getSortFromQuery() */
+        $reflectionMethod = new ReflectionMethod(SearchRequestProcessor::class, 'getSortFromQuery');
         $reflectionMethod->setAccessible(true);
 
         // First test that the value is null if no sorts are set
-        $this->assertEquals([], $reflectionMethod->invoke(QueryParamsProcessor::singleton(), $query));
+        $this->assertEquals([], $reflectionMethod->invoke(SearchRequestProcessor::singleton(), $query));
 
         // Add sorts and retest
         $query->addSort('field1');
@@ -254,7 +254,7 @@ class QueryParamsHelperTest extends SapphireTest
 
         $this->assertEqualsCanonicalizing(
             $expected,
-            $reflectionMethod->invoke(QueryParamsProcessor::singleton(), $query)
+            $reflectionMethod->invoke(SearchRequestProcessor::singleton(), $query)
         );
     }
 
@@ -274,7 +274,7 @@ class QueryParamsHelperTest extends SapphireTest
         $query->filter('field1', 'value1', Criterion::EQUAL);
         $query->setPagination(10, 20);
 
-        $params = QueryParamsProcessor::singleton()->getQueryParams($query);
+        $params = SearchRequestProcessor::singleton()->getRequest($query);
 
         $this->assertEquals('search string', $params->query);
         $this->assertInstanceOf(SimpleObject::class, $params->facets);
@@ -296,7 +296,7 @@ class QueryParamsHelperTest extends SapphireTest
             'mobile',
         ];
 
-        $params = QueryParamsProcessor::singleton()->getQueryParams($query);
+        $params = SearchRequestProcessor::singleton()->getRequest($query);
 
         $this->assertInstanceOf(SimpleObject::class, $params->analytics);
         $this->assertEqualsCanonicalizing($expected, $params->analytics->tags);

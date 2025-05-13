@@ -11,7 +11,7 @@ use SilverStripe\Discoverer\Query\Query;
 use SilverStripe\Discoverer\Service\Results\Field;
 use SilverStripe\Discoverer\Service\Results\Record;
 use SilverStripe\Discoverer\Service\Results\Results;
-use SilverStripe\DiscovererBifrost\Processors\ResultsProcessor;
+use SilverStripe\DiscovererBifrost\Processors\SearchResultsProcessor;
 
 class ResultsProcessorTest extends SapphireTest
 {
@@ -21,9 +21,9 @@ class ResultsProcessorTest extends SapphireTest
         // The only assertion we are making in this test is that no Exceptions are thrown when we invoke our method
         $this->expectNotToPerformAssertions();
 
-        $resultsProcessor = ResultsProcessor::singleton();
+        $resultsProcessor = SearchResultsProcessor::singleton();
 
-        /** @see ResultsProcessor::validateResponse() */
+        /** @see SearchResultsProcessor::validateResponse() */
         $reflectionMethod = new ReflectionMethod($resultsProcessor, 'validateResponse');
         $reflectionMethod->setAccessible(true);
 
@@ -34,9 +34,9 @@ class ResultsProcessorTest extends SapphireTest
     {
         $this->expectExceptionMessage('Missing required top level fields: meta');
 
-        $resultsProcessor = ResultsProcessor::singleton();
+        $resultsProcessor = SearchResultsProcessor::singleton();
 
-        /** @see ResultsProcessor::validateResponse() */
+        /** @see SearchResultsProcessor::validateResponse() */
         $reflectionMethod = new ReflectionMethod($resultsProcessor, 'validateResponse');
         $reflectionMethod->setAccessible(true);
 
@@ -50,9 +50,9 @@ class ResultsProcessorTest extends SapphireTest
     {
         $this->expectExceptionMessage('Missing required top level fields: results');
 
-        $resultsProcessor = ResultsProcessor::singleton();
+        $resultsProcessor = SearchResultsProcessor::singleton();
 
-        /** @see ResultsProcessor::validateResponse() */
+        /** @see SearchResultsProcessor::validateResponse() */
         $reflectionMethod = new ReflectionMethod($resultsProcessor, 'validateResponse');
         $reflectionMethod->setAccessible(true);
 
@@ -66,9 +66,9 @@ class ResultsProcessorTest extends SapphireTest
     {
         $this->expectExceptionMessage('Missing required top level fields: meta, results');
 
-        $resultsProcessor = ResultsProcessor::singleton();
+        $resultsProcessor = SearchResultsProcessor::singleton();
 
-        /** @see ResultsProcessor::validateResponse() */
+        /** @see SearchResultsProcessor::validateResponse() */
         $reflectionMethod = new ReflectionMethod($resultsProcessor, 'validateResponse');
         $reflectionMethod->setAccessible(true);
 
@@ -83,9 +83,9 @@ class ResultsProcessorTest extends SapphireTest
     {
         $this->expectExceptionMessage('Expected value for meta.request_id');
 
-        $resultsProcessor = ResultsProcessor::singleton();
+        $resultsProcessor = SearchResultsProcessor::singleton();
 
-        /** @see ResultsProcessor::validateResponse() */
+        /** @see SearchResultsProcessor::validateResponse() */
         $reflectionMethod = new ReflectionMethod($resultsProcessor, 'validateResponse');
         $reflectionMethod->setAccessible(true);
 
@@ -99,9 +99,9 @@ class ResultsProcessorTest extends SapphireTest
     {
         $this->expectExceptionMessage('Expected value for meta.engine.name');
 
-        $resultsProcessor = ResultsProcessor::singleton();
+        $resultsProcessor = SearchResultsProcessor::singleton();
 
-        /** @see ResultsProcessor::validateResponse() */
+        /** @see SearchResultsProcessor::validateResponse() */
         $reflectionMethod = new ReflectionMethod($resultsProcessor, 'validateResponse');
         $reflectionMethod->setAccessible(true);
 
@@ -115,9 +115,9 @@ class ResultsProcessorTest extends SapphireTest
     {
         $this->expectExceptionMessage('Expected value for meta.engine.name');
 
-        $resultsProcessor = ResultsProcessor::singleton();
+        $resultsProcessor = SearchResultsProcessor::singleton();
 
-        /** @see ResultsProcessor::validateResponse() */
+        /** @see SearchResultsProcessor::validateResponse() */
         $reflectionMethod = new ReflectionMethod($resultsProcessor, 'validateResponse');
         $reflectionMethod->setAccessible(true);
 
@@ -131,9 +131,9 @@ class ResultsProcessorTest extends SapphireTest
     {
         $this->expectExceptionMessage('Missing array structure for meta.page in Bifröst search response');
 
-        $resultsProcessor = ResultsProcessor::singleton();
+        $resultsProcessor = SearchResultsProcessor::singleton();
 
-        /** @see ResultsProcessor::validateResponse() */
+        /** @see SearchResultsProcessor::validateResponse() */
         $reflectionMethod = new ReflectionMethod($resultsProcessor, 'validateResponse');
         $reflectionMethod->setAccessible(true);
 
@@ -147,9 +147,9 @@ class ResultsProcessorTest extends SapphireTest
     {
         $this->expectExceptionMessage('Missing required pagination fields: current, size, total_pages, total_results');
 
-        $resultsProcessor = ResultsProcessor::singleton();
+        $resultsProcessor = SearchResultsProcessor::singleton();
 
-        /** @see ResultsProcessor::validateResponse() */
+        /** @see SearchResultsProcessor::validateResponse() */
         $reflectionMethod = new ReflectionMethod($resultsProcessor, 'validateResponse');
         $reflectionMethod->setAccessible(true);
 
@@ -162,9 +162,9 @@ class ResultsProcessorTest extends SapphireTest
 
     public function testProcessMetaData(): void
     {
-        $resultsProcessor = ResultsProcessor::singleton();
+        $resultsProcessor = SearchResultsProcessor::singleton();
 
-        /** @see ResultsProcessor::processMetaData() */
+        /** @see SearchResultsProcessor::processMetaData() */
         $reflectionMethod = new ReflectionMethod($resultsProcessor, 'processMetaData');
         $reflectionMethod->setAccessible(true);
 
@@ -184,9 +184,9 @@ class ResultsProcessorTest extends SapphireTest
     {
         // Make sure Analytics is disabled
         Environment::setEnv(AnalyticsMiddleware::ENV_ANALYTICS_ENABLED, false);
-        $resultsProcessor = ResultsProcessor::singleton();
+        $resultsProcessor = SearchResultsProcessor::singleton();
 
-        /** @see ResultsProcessor::processRecords() */
+        /** @see SearchResultsProcessor::processRecords() */
         $reflectionMethod = new ReflectionMethod($resultsProcessor, 'processRecords');
         $reflectionMethod->setAccessible(true);
 
@@ -250,9 +250,9 @@ class ResultsProcessorTest extends SapphireTest
     {
         // Make sure Analytics is enabled
         Environment::setEnv(AnalyticsMiddleware::ENV_ANALYTICS_ENABLED, true);
-        $resultsProcessor = ResultsProcessor::singleton();
+        $resultsProcessor = SearchResultsProcessor::singleton();
 
-        /** @see ResultsProcessor::processRecords() */
+        /** @see SearchResultsProcessor::processRecords() */
         $reflectionMethod = new ReflectionMethod($resultsProcessor, 'processRecords');
         $reflectionMethod->setAccessible(true);
 
@@ -280,9 +280,9 @@ class ResultsProcessorTest extends SapphireTest
     {
         $this->expectExceptionMessage('Expected values for: meta.request_id');
 
-        $resultsProcessor = ResultsProcessor::singleton();
+        $resultsProcessor = SearchResultsProcessor::singleton();
 
-        /** @see ResultsProcessor::processRecords() */
+        /** @see SearchResultsProcessor::processRecords() */
         $reflectionMethod = new ReflectionMethod($resultsProcessor, 'processRecords');
         $reflectionMethod->setAccessible(true);
 
@@ -299,9 +299,9 @@ class ResultsProcessorTest extends SapphireTest
     {
         $this->expectExceptionMessage('Expected values for: meta.engine.name');
 
-        $resultsProcessor = ResultsProcessor::singleton();
+        $resultsProcessor = SearchResultsProcessor::singleton();
 
-        /** @see ResultsProcessor::processRecords() */
+        /** @see SearchResultsProcessor::processRecords() */
         $reflectionMethod = new ReflectionMethod($resultsProcessor, 'processRecords');
         $reflectionMethod->setAccessible(true);
 
@@ -318,9 +318,9 @@ class ResultsProcessorTest extends SapphireTest
     {
         $this->expectExceptionMessage('Expected values for: meta.request_id, meta.engine.name');
 
-        $resultsProcessor = ResultsProcessor::singleton();
+        $resultsProcessor = SearchResultsProcessor::singleton();
 
-        /** @see ResultsProcessor::processRecords() */
+        /** @see SearchResultsProcessor::processRecords() */
         $reflectionMethod = new ReflectionMethod($resultsProcessor, 'processRecords');
         $reflectionMethod->setAccessible(true);
 

@@ -2,15 +2,14 @@
 
 namespace SilverStripe\DiscovererBifrost\Service\Adaptors;
 
-use Elastic\EnterpriseSearch\AppSearch\Request\Search;
-use Elastic\EnterpriseSearch\Exception\ClientErrorResponseException;
 use Exception;
-use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Discoverer\Query\Query;
 use SilverStripe\Discoverer\Service\Interfaces\SearchAdaptor as SearchAdaptorInterface;
 use SilverStripe\Discoverer\Service\Results\Results;
-use SilverStripe\DiscovererBifrost\Processors\QueryParamsProcessor;
-use SilverStripe\DiscovererBifrost\Processors\ResultsProcessor;
+use SilverStripe\DiscovererBifrost\Processors\SearchRequestProcessor;
+use SilverStripe\DiscovererBifrost\Processors\SearchResultsProcessor;
+use Silverstripe\Search\Client\Exception\SearchPostUnprocessableEntityException;
+use stdClass;
 use Throwable;
 
 class SearchAdaptor extends BaseAdaptor implements SearchAdaptorInterface
@@ -26,23 +25,23 @@ class SearchAdaptor extends BaseAdaptor implements SearchAdaptorInterface
         $results = Results::create($query);
 
         try {
-            $params = QueryParamsProcessor::singleton()->getQueryParams($query);
             $engine = $this->environmentizeIndex($indexName);
-            $request = Injector::inst()->create(Search::class, $engine, $params);
-            $response = $this->getClient()->appSearch()->search($request);
+            $request = SearchRequestProcessor::singleton()->getRequest($query);
+            // searchPost() returns a stdClass() even though the typehint states otherwise
+            /** @var stdClass $response */
+            $response = $this->getClient()->searchPost($engine, $request);
 
-            ResultsProcessor::singleton()->getProcessedResults($results, $response->asArray());
+            SearchResultsProcessor::singleton()->getProcessedResults($results, $response);
             // If we got this far, then the request was a success
             $results->setSuccess(true);
-        } catch (ClientErrorResponseException $e) {
-            $errors = (string) $e->getResponse()->getBody();
+        } catch (SearchPostUnprocessableEntityException $e) {
             // Log the error without breaking the page
-            $this->getLogger()->error(sprintf('Bifrost error: %s', $errors), ['elastic' => $e]);
+            $this->getLogger()->error(sprintf((string) $e->getResponse()->getBody(), $e->getMessage()), ['bifrost' => $e]);
             // Our request was not a success
             $results->setSuccess(false);
         } catch (Throwable $e) {
             // Log the error without breaking the page
-            $this->getLogger()->error(sprintf('Bifrost error: %s', $e->getMessage()), ['elastic' => $e]);
+            $this->getLogger()->error(sprintf('Bifrost error: %s', $e->getMessage()), ['bifrost' => $e]);
             // Our request was not a success
             $results->setSuccess(false);
         } finally {

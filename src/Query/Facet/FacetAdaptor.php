@@ -2,6 +2,7 @@
 
 namespace SilverStripe\DiscovererBifrost\Query\Facet;
 
+use ArrayObject;
 use Elastic\EnterpriseSearch\AppSearch\Schema\SimpleObject;
 use SilverStripe\Discoverer\Query\Facet\Facet;
 use SilverStripe\Discoverer\Query\Facet\FacetAdaptor as FacetAdaptorInterface;
@@ -20,24 +21,24 @@ class FacetAdaptor implements FacetAdaptorInterface
 
     public function prepareFacets(FacetCollection $facetCollection): mixed
     {
-        $facets = new SimpleObject();
+        $facets = new ArrayObject();
 
         foreach ($facetCollection->getFacets() as $facet) {
             $fieldName = $facet->getFieldName();
 
             if (!property_exists($facets, $fieldName)) {
-                $facets->{$fieldName} = [];
+                $facets[$fieldName] = [];
             }
 
-            $facets->{$fieldName}[] = $this->prepareFacet($facet);
+            $facets[$fieldName][] = $this->prepareFacet($facet);
         }
 
         return $facets;
     }
 
-    private function prepareFacet(Facet $facet): array
+    private function prepareFacet(Facet $facet): ArrayObject
     {
-        $preparedFacet = [];
+        $preparedFacet = new ArrayObject();
         $preparedFacet['type'] = self::TYPE_CONVERSION[$facet->getType()];
 
         if ($facet->getName()) {
@@ -61,13 +62,13 @@ class FacetAdaptor implements FacetAdaptorInterface
         return $preparedFacet;
     }
 
-    private function prepareRanges(Facet $facet): ?array
+    private function prepareRanges(Facet $facet): ?ArrayObject
     {
         if (!$facet->getRanges()) {
             return null;
         }
 
-        $ranges = [];
+        $ranges = new ArrayObject();
 
         foreach ($facet->getRanges() as $range) {
             $preparedRange = [];

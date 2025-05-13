@@ -2,11 +2,11 @@
 
 namespace SilverStripe\DiscovererBifrost\Service\Adaptors;
 
-use Elastic\EnterpriseSearch\Client;
 use Psr\Log\LoggerInterface;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Environment;
 use SilverStripe\Core\Injector\Injectable;
+use Silverstripe\Search\Client\Client;
 
 abstract class BaseAdaptor
 {
