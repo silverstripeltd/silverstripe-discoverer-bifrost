@@ -9,7 +9,7 @@ use SilverStripe\Discoverer\Query\Filter\CriterionAdaptor as CriterionAdaptorInt
 class CriterionAdaptor implements CriterionAdaptorInterface
 {
 
-    private const UNSUPPORTED_COMPARISONS = [
+    private const array UNSUPPORTED_COMPARISONS = [
         Criterion::LESS_THAN,
         Criterion::GREATER_THAN,
         Criterion::IS_NULL,
