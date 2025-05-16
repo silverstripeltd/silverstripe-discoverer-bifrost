@@ -25,7 +25,7 @@ class FacetAdaptor implements FacetAdaptorInterface
         foreach ($facetCollection->getFacets() as $facet) {
             $fieldName = $facet->getFieldName();
 
-            if (!property_exists($facets, $fieldName)) {
+            if (!isset($facets[$fieldName])) {
                 $facets[$fieldName] = [];
             }
 
@@ -61,13 +61,13 @@ class FacetAdaptor implements FacetAdaptorInterface
         return $preparedFacet;
     }
 
-    private function prepareRanges(Facet $facet): ?ArrayObject
+    private function prepareRanges(Facet $facet): ?array
     {
         if (!$facet->getRanges()) {
             return null;
         }
 
-        $ranges = new ArrayObject();
+        $ranges = [];
 
         foreach ($facet->getRanges() as $range) {
             $preparedRange = [];

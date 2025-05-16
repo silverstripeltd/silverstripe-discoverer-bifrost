@@ -2,6 +2,7 @@
 
 namespace SilverStripe\DiscovererBifrost\Tests\Query\Facet;
 
+use ArrayObject;
 use Elastic\EnterpriseSearch\AppSearch\Schema\SimpleObject;
 use ReflectionMethod;
 use SilverStripe\Dev\SapphireTest;
@@ -96,6 +97,7 @@ class FacetAdaptorTest extends SapphireTest
             'name' => 'facetName1',
             'size' => 3,
         ];
+        $expected = new ArrayObject($expected);
 
         $this->assertEqualsCanonicalizing($expected, $reflectionMethod->invoke($adaptor, $facet));
     }
@@ -124,6 +126,7 @@ class FacetAdaptorTest extends SapphireTest
                 ],
             ],
         ];
+        $expected = new ArrayObject($expected);
 
         $this->assertEqualsCanonicalizing($expected, $reflectionMethod->invoke($adaptor, $facet));
     }
@@ -150,15 +153,15 @@ class FacetAdaptorTest extends SapphireTest
         $reflectionMethod = new ReflectionMethod($adaptor, 'prepareFacets');
         $reflectionMethod->setAccessible(true);
 
-        /** @var SimpleObject $simpleObject */
+        /** @var ArrayObject $simpleObject */
         $simpleObject = $reflectionMethod->invoke($adaptor, $facetCollection);
 
         // Check that we have the expected properties
-        $this->assertObjectHasProperty('fieldName1', $simpleObject);
-        $this->assertObjectHasProperty('fieldName2', $simpleObject);
+        $this->assertArrayHasKey('fieldName1', $simpleObject);
+        $this->assertArrayHasKey('fieldName2', $simpleObject);
         // And that those properties have the expected number of facet records
-        $this->assertCount(2, $simpleObject->fieldName1);
-        $this->assertCount(1, $simpleObject->fieldName2);
+        $this->assertCount(2, $simpleObject['fieldName1']);
+        $this->assertCount(1, $simpleObject['fieldName2']);
     }
 
 }

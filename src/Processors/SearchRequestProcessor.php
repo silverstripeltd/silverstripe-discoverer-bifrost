@@ -140,7 +140,9 @@ class SearchRequestProcessor
                 ? new SearchRequestResultFieldSnippet()
                 : new SearchRequestResultFieldRaw();
 
-            $resultFields[$fieldName] = new SearchRequestResultField();
+            if (!isset($resultFields[$fieldName])) {
+                $resultFields[$fieldName] = new SearchRequestResultField();
+            }
 
             if ($fieldSize) {
                 $fieldType->setSize($fieldSize);

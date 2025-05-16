@@ -2,11 +2,15 @@
 
 namespace SilverStripe\DiscovererBifrost\Tests\Service\Adaptors;
 
-use Elastic\EnterpriseSearch\Client as ElasticClient;
 use GuzzleHttp\Client as GuzzleClient;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Psr7\Response;
+use Http\Client\Common\Plugin\AddHostPlugin;
+use Http\Client\Common\Plugin\AddPathPlugin;
+use Http\Client\Common\Plugin\HeaderAppendPlugin;
+use Http\Client\Common\PluginClient;
+use Http\Discovery\Psr17FactoryDiscovery;
 use Psr\Log\LoggerInterface;
 use ReflectionMethod;
 use SilverStripe\Core\Environment;
@@ -16,6 +20,8 @@ use SilverStripe\Discoverer\Query\Query;
 use SilverStripe\Discoverer\Service\SearchService;
 use SilverStripe\DiscovererBifrost\Service\Adaptors\SearchAdaptor;
 use SilverStripe\DiscovererBifrost\Tests\Logger\QuietLogger;
+use Silverstripe\Search\Client\Client;
+use stdClass;
 
 class SearchAdaptorTest extends SapphireTest
 {
@@ -64,7 +70,7 @@ class SearchAdaptorTest extends SapphireTest
         ];
         $body = $this->getResponseWithRecords(2);
         // Remove a required field in order to create an error
-        unset($body['meta']);
+        unset($body->meta);
         $body = json_encode($body);
 
         $this->mock->append(new Response(200, $headers, $body));
@@ -85,28 +91,24 @@ class SearchAdaptorTest extends SapphireTest
         // Set up a mock handler/client so that we can feed in mock responses that we expected to get from the API
         $this->mock = new MockHandler([]);
         $handler = HandlerStack::create($this->mock);
-        $client = new GuzzleClient(['handler' => $handler]);
+        $httpClient = new GuzzleClient(['handler' => $handler]);
 
-        $config = [
-            'host' => 'https://api.bifrost.com',
-            'app-search' => [
-                'token' => 'test-token',
-            ],
-            'enterprise-search' => [
-                'token' => 'test-token',
-            ],
-            'client' => $client,
+        $plugins = [
+            new AddHostPlugin(Psr17FactoryDiscovery::findUriFactory()->createUri('https://bifrost.io')),
+            new AddPathPlugin(Psr17FactoryDiscovery::findUriFactory()->createUri('/api/v1')),
+            new HeaderAppendPlugin([
+                'Authorization' => 'Bearer fakeToken',
+            ]),
         ];
 
-        // Instantiate the Elastic Client that we'll use (that in turn uses the GuzzleClient with the MockHandler)
-        $elasticClient = new ElasticClient($config);
+        $client = Client::create(new PluginClient($httpClient, $plugins));
 
-        Injector::inst()->registerService($elasticClient, ElasticClient::class . '.searchClient');
+        Injector::inst()->registerService($client, Client::class . '.searchClient');
         // Add our quiet logger, so that our API calls don't create any noise in our test report
         Injector::inst()->registerService(new QuietLogger(), LoggerInterface::class . '.errorhandler');
     }
 
-    private function getResponseWithRecords(int $numRecords = 1): array
+    private function getResponseWithRecords(int $numRecords = 1): stdClass
     {
         $records = [];
 
@@ -132,30 +134,28 @@ class SearchAdaptorTest extends SapphireTest
             ];
         }
 
-        return [
-            'meta' => $this->getValidMetaResponse(),
+        $response = [
+            'meta' => [
+                'alerts' => [],
+                'warnings' => [],
+                'precision' => 2,
+                'engine' => [
+                    'name' => 'bifrost-main',
+                    'type' => 'default',
+                ],
+                'page' => [
+                    'current' => 1,
+                    'total_pages' => 10,
+                    'total_results' => 100,
+                    'size' => 10,
+                ],
+                'request_id' => '123abc',
+            ],
             'results' => $records,
         ];
-    }
 
-    private function getValidMetaResponse(): array
-    {
-        return [
-            'alerts' => [],
-            'warnings' => [],
-            'precision' => 2,
-            'engine' => [
-                'name' => 'bifrost-main',
-                'type' => 'default',
-            ],
-            'page' => [
-                'current' => 1,
-                'total_pages' => 10,
-                'total_results' => 100,
-                'size' => 10,
-            ],
-            'request_id' => '123abc',
-        ];
+        // Convert response to stdClass
+        return json_decode(json_encode($response), false);
     }
 
 }
