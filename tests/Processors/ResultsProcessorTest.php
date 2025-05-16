@@ -12,11 +12,12 @@ use SilverStripe\Discoverer\Service\Results\Field;
 use SilverStripe\Discoverer\Service\Results\Record;
 use SilverStripe\Discoverer\Service\Results\Results;
 use SilverStripe\DiscovererBifrost\Processors\SearchResultsProcessor;
+use stdClass;
 
 class ResultsProcessorTest extends SapphireTest
 {
 
-    public function testValidateResponse(): void
+    public function testValidateResponseTest(): void
     {
         // The only assertion we are making in this test is that no Exceptions are thrown when we invoke our method
         $this->expectNotToPerformAssertions();
@@ -41,7 +42,7 @@ class ResultsProcessorTest extends SapphireTest
         $reflectionMethod->setAccessible(true);
 
         $response = $this->getResponseWithRecords();
-        unset($response['meta']);
+        unset($response->meta);
 
         $reflectionMethod->invoke($resultsProcessor, $response);
     }
@@ -57,7 +58,7 @@ class ResultsProcessorTest extends SapphireTest
         $reflectionMethod->setAccessible(true);
 
         $response = $this->getResponseWithRecords();
-        unset($response['results']);
+        unset($response->results);
 
         $reflectionMethod->invoke($resultsProcessor, $response);
     }
@@ -73,8 +74,8 @@ class ResultsProcessorTest extends SapphireTest
         $reflectionMethod->setAccessible(true);
 
         $response = $this->getResponseWithRecords();
-        unset($response['meta']);
-        unset($response['results']);
+        unset($response->meta);
+        unset($response->results);
 
         $reflectionMethod->invoke($resultsProcessor, $response);
     }
@@ -90,7 +91,7 @@ class ResultsProcessorTest extends SapphireTest
         $reflectionMethod->setAccessible(true);
 
         $response = $this->getResponseWithRecords();
-        unset($response['meta']['request_id']);
+        unset($response->meta->request_id);
 
         $reflectionMethod->invoke($resultsProcessor, $response);
     }
@@ -106,7 +107,7 @@ class ResultsProcessorTest extends SapphireTest
         $reflectionMethod->setAccessible(true);
 
         $response = $this->getResponseWithRecords();
-        unset($response['meta']['engine']);
+        unset($response->meta->engine);
 
         $reflectionMethod->invoke($resultsProcessor, $response);
     }
@@ -122,14 +123,14 @@ class ResultsProcessorTest extends SapphireTest
         $reflectionMethod->setAccessible(true);
 
         $response = $this->getResponseWithRecords();
-        unset($response['meta']['engine']['name']);
+        unset($response->meta->engine->name);
 
         $reflectionMethod->invoke($resultsProcessor, $response);
     }
 
     public function testValidateResponseNoPage(): void
     {
-        $this->expectExceptionMessage('Missing array structure for meta.page in Bifröst search response');
+        $this->expectExceptionMessage('Missing structure for meta.page in Bifröst search response');
 
         $resultsProcessor = SearchResultsProcessor::singleton();
 
@@ -138,7 +139,7 @@ class ResultsProcessorTest extends SapphireTest
         $reflectionMethod->setAccessible(true);
 
         $response = $this->getResponseWithRecords();
-        unset($response['meta']['page']);
+        unset($response->meta->page);
 
         $reflectionMethod->invoke($resultsProcessor, $response);
     }
@@ -155,7 +156,7 @@ class ResultsProcessorTest extends SapphireTest
 
         $response = $this->getResponseWithRecords();
         // Remove all the pagination fields
-        $response['meta']['page'] = [];
+        $response->meta->page = new stdClass();
 
         $reflectionMethod->invoke($resultsProcessor, $response);
     }
@@ -177,7 +178,7 @@ class ResultsProcessorTest extends SapphireTest
         $this->assertEquals(1, $results->getRecords()->CurrentPage());
         $this->assertEquals(10, $results->getRecords()->getPageLength());
         $this->assertEquals(10, $results->getRecords()->TotalPages());
-        $this->assertEquals(100, $results->getRecords()->TotalItems());
+        $this->assertEquals(100, $results->getRecords()->getTotalItems());
     }
 
     public function testProcessRecords(): void
@@ -196,7 +197,7 @@ class ResultsProcessorTest extends SapphireTest
         // This should hydrate our Results object with 2 records
         $reflectionMethod->invoke($resultsProcessor, $results, $this->getResponseWithRecords(2));
 
-        $this->assertEquals(2, $results->getRecords()->TotalItems());
+        $this->assertEquals(2, $results->getRecords()->getTotalItems());
 
         /** @var Record $record */
         $record = $results->getRecords()->getList()->first();
@@ -262,7 +263,7 @@ class ResultsProcessorTest extends SapphireTest
         // This should hydrate our Results object with 2 records
         $reflectionMethod->invoke($resultsProcessor, $results, $this->getResponseWithRecords(2));
 
-        $this->assertEquals(2, $results->getRecords()->TotalItems());
+        $this->assertEquals(2, $results->getRecords()->getTotalItems());
 
         /** @var Record $record */
         $record = $results->getRecords()->getList()->first();
@@ -290,7 +291,7 @@ class ResultsProcessorTest extends SapphireTest
         $results = Results::create(Query::create());
 
         $response = $this->getResponseWithRecords();
-        unset($response['meta']['request_id']);
+        unset($response->meta->request_id);
 
         $reflectionMethod->invoke($resultsProcessor, $results, $response);
     }
@@ -309,7 +310,7 @@ class ResultsProcessorTest extends SapphireTest
         $results = Results::create(Query::create());
 
         $response = $this->getResponseWithRecords();
-        unset($response['meta']['engine']['name']);
+        unset($response->meta->engine->name);
 
         $reflectionMethod->invoke($resultsProcessor, $results, $response);
     }
@@ -328,13 +329,13 @@ class ResultsProcessorTest extends SapphireTest
         $results = Results::create(Query::create());
 
         $response = $this->getResponseWithRecords();
-        unset($response['meta']['request_id']);
-        unset($response['meta']['engine']['name']);
+        unset($response->meta->request_id);
+        unset($response->meta->engine->name);
 
         $reflectionMethod->invoke($resultsProcessor, $results, $response);
     }
 
-    private function getResponseWithRecords(int $numRecords = 1): array
+    private function getResponseWithRecords(int $numRecords = 1): stdClass
     {
         $records = [];
 
@@ -360,30 +361,28 @@ class ResultsProcessorTest extends SapphireTest
             ];
         }
 
-        return [
-            'meta' => $this->getValidMetaResponse(),
+        $response = [
+            'meta' => [
+                'alerts' => [],
+                'warnings' => [],
+                'precision' => 2,
+                'engine' => [
+                    'name' => 'bifrost-main',
+                    'type' => 'default',
+                ],
+                'page' => [
+                    'current' => 1,
+                    'total_pages' => 10,
+                    'total_results' => 100,
+                    'size' => 10,
+                ],
+                'request_id' => '123abc',
+            ],
             'results' => $records,
         ];
-    }
 
-    private function getValidMetaResponse(): array
-    {
-        return [
-            'alerts' => [],
-            'warnings' => [],
-            'precision' => 2,
-            'engine' => [
-                'name' => 'bifrost-main',
-                'type' => 'default',
-            ],
-            'page' => [
-                'current' => 1,
-                'total_pages' => 10,
-                'total_results' => 100,
-                'size' => 10,
-            ],
-            'request_id' => '123abc',
-        ];
+        // Convert objects to stdClass
+        return json_decode(json_encode($response), false);
     }
 
 }

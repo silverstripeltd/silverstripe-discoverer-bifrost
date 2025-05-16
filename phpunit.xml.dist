@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <phpunit
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     bootstrap="vendor/silverstripe/framework/tests/bootstrap.php"
@@ -6,6 +6,10 @@
     xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.5/phpunit.xsd"
     cacheDirectory=".phpunit.cache"
 >
+    <php>
+        <env name="BIFROST_ENDPOINT" value="https://fakeplace.com" force="true"/>
+        <env name="BIFROST_QUERY_API_KEY" value="fakeApiKey" force="true"/>
+    </php>
     <testsuite name="Default">
         <directory>tests</directory>
     </testsuite>
@@ -14,10 +18,4 @@
             <directory suffix=".php">tests</directory>
         </include>
     </source>
-    <php>
-        <env name="BIFROST_ENDPOINT" value="https://fakeplace.com" force="true"/>
-    </php>
-    <php>
-        <env name="BIFROST_QUERY_API_KEY" value="fakeApiKey" force="true"/>
-    </php>
 </phpunit>
