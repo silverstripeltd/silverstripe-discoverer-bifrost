@@ -10,6 +10,8 @@ SilverStripe\Core\Injector\Injector:
     class: SilverStripe\DiscovererBifrost\Service\Adaptors\QuerySuggestionAdaptor
   SilverStripe\Discoverer\Service\Interfaces\SpellingSuggestionAdaptor:
     class: SilverStripe\DiscovererBifrost\Service\Adaptors\SpellingSuggestionAdaptor
+  SilverStripe\Discoverer\Service\Interfaces\ProcessAnalyticsAdaptor:
+    class: SilverStripe\DiscovererBifrost\Service\Adaptors\ProcessAnalyticsAdaptor
   # Adaptors provided by the ElasticEnterprise dependency
   SilverStripe\Discoverer\Query\Facet\FacetAdaptor:
     class: SilverStripe\DiscovererElasticEnterprise\Query\Facet\FacetAdaptor
@@ -17,8 +19,6 @@ SilverStripe\Core\Injector\Injector:
     class: SilverStripe\DiscovererElasticEnterprise\Query\Filter\CriteriaAdaptor
   SilverStripe\Discoverer\Query\Filter\CriterionAdaptor:
     class: SilverStripe\DiscovererElasticEnterprise\Query\Filter\CriterionAdaptor
-  SilverStripe\Discoverer\Service\Interfaces\ProcessAnalyticsAdaptor:
-    class: SilverStripe\DiscovererElasticEnterprise\Service\Adaptors\ProcessAnalyticsAdaptor
   SilverStripe\Discoverer\Service\Interfaces\SearchAdaptor:
     class: SilverStripe\DiscovererElasticEnterprise\Service\Adaptors\SearchAdaptor
 
