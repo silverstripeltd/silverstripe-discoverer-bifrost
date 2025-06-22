@@ -165,7 +165,7 @@ class SearchRequestProcessor
         $searchFields = new ArrayObject();
 
         foreach ($query->getSearchFields() as $fieldName => $weight) {
-            $searchFields[$fieldName] = new ArrayObject;
+            $searchFields[$fieldName] = new ArrayObject();
 
             if (!$weight) {
                 continue;

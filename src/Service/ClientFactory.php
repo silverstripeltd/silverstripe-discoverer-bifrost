@@ -14,8 +14,8 @@ use Silverstripe\Search\Client\Client;
 class ClientFactory implements Factory
 {
 
-    private const ENDPOINT = 'BIFROST_ENDPOINT';
-    private const QUERY_API_KEY = 'BIFROST_QUERY_API_KEY';
+    private const string ENDPOINT = 'BIFROST_ENDPOINT';
+    private const string QUERY_API_KEY = 'BIFROST_QUERY_API_KEY';
 
     /**
      * @throws Exception

@@ -29,7 +29,10 @@ class SpellingSuggestionAdaptor extends BaseAdaptor implements SpellingSuggestio
             $suggestions->setSuccess(true);
         } catch (SpellingSuggestionPostUnprocessableEntityException $e) {
             // Log the error without breaking the page
-            $this->getLogger()->error(sprintf((string) $e->getResponse()->getBody(), $e->getMessage()), ['bifrost' => $e]);
+            $this->getLogger()->error(
+                sprintf((string) $e->getResponse()->getBody(), $e->getMessage()),
+                ['bifrost' => $e]
+            );
             // Our request was not a success
             $suggestions->setSuccess(false);
         } catch (Throwable $e) {
