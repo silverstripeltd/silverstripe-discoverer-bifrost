@@ -5,6 +5,9 @@ namespace SilverStripe\DiscovererBifrost\Service\Requests;
 use Elastic\EnterpriseSearch\AppSearch\Request\LogClickthrough as AppSearchLogClickthrough;
 use Elastic\EnterpriseSearch\AppSearch\Schema\ClickParams;
 
+/**
+ * @deprecated 3.0
+ */
 class ClickPost extends AppSearchLogClickthrough
 {
 
