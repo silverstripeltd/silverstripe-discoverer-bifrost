@@ -5,22 +5,15 @@ Only:
   envvarset: 'BIFROST_QUERY_API_KEY'
 ---
 SilverStripe\Core\Injector\Injector:
-  # Adaptors provided by this module
   SilverStripe\Discoverer\Service\Interfaces\QuerySuggestionAdaptor:
     class: SilverStripe\DiscovererBifrost\Service\Adaptors\QuerySuggestionAdaptor
   SilverStripe\Discoverer\Service\Interfaces\SpellingSuggestionAdaptor:
     class: SilverStripe\DiscovererBifrost\Service\Adaptors\SpellingSuggestionAdaptor
-  SilverStripe\Discoverer\Service\Interfaces\ProcessAnalyticsAdaptor:
-    class: SilverStripe\DiscovererBifrost\Service\Adaptors\ProcessAnalyticsAdaptor
-  # Adaptors provided by the ElasticEnterprise dependency
   SilverStripe\Discoverer\Query\Facet\FacetAdaptor:
-    class: SilverStripe\DiscovererElasticEnterprise\Query\Facet\FacetAdaptor
+    class: SilverStripe\DiscovererBifrost\Query\Facet\FacetAdaptor
   SilverStripe\Discoverer\Query\Filter\CriteriaAdaptor:
-    class: SilverStripe\DiscovererElasticEnterprise\Query\Filter\CriteriaAdaptor
+    class: SilverStripe\DiscovererBifrost\Query\Filter\CriteriaAdaptor
   SilverStripe\Discoverer\Query\Filter\CriterionAdaptor:
-    class: SilverStripe\DiscovererElasticEnterprise\Query\Filter\CriterionAdaptor
+    class: SilverStripe\DiscovererBifrost\Query\Filter\CriterionAdaptor
   SilverStripe\Discoverer\Service\Interfaces\SearchAdaptor:
-    class: SilverStripe\DiscovererElasticEnterprise\Service\Adaptors\SearchAdaptor
-
-SilverStripe\DiscovererElasticEnterprise\Service\Adaptors\BaseAdaptor:
-  prefix_env_var: 'BIFROST_ENGINE_PREFIX'
+    class: SilverStripe\DiscovererBifrost\Service\Adaptors\SearchAdaptor
