@@ -170,7 +170,7 @@ class ResultsProcessorTest extends SapphireTest
         $reflectionMethod->setAccessible(true);
 
         // Empty Results object
-        $results = Results::create(Query::create());
+        $results = Results::create(200, Query::create());
 
         // This should hydrate our Results object
         $reflectionMethod->invoke($resultsProcessor, $results, $this->getResponseWithRecords());
@@ -192,7 +192,7 @@ class ResultsProcessorTest extends SapphireTest
         $reflectionMethod->setAccessible(true);
 
         // Empty Results object
-        $results = Results::create(Query::create());
+        $results = Results::create(200, Query::create());
 
         // This should hydrate our Results object with 2 records
         $reflectionMethod->invoke($resultsProcessor, $results, $this->getResponseWithRecords(2));
@@ -258,7 +258,7 @@ class ResultsProcessorTest extends SapphireTest
         $reflectionMethod->setAccessible(true);
 
         // Empty Results object
-        $results = Results::create(Query::create('query string'));
+        $results = Results::create(200, Query::create('query string'));
 
         // This should hydrate our Results object with 2 records
         $reflectionMethod->invoke($resultsProcessor, $results, $this->getResponseWithRecords(2));
@@ -288,7 +288,7 @@ class ResultsProcessorTest extends SapphireTest
         $reflectionMethod->setAccessible(true);
 
         // Empty Results object
-        $results = Results::create(Query::create());
+        $results = Results::create(200, Query::create());
 
         $response = $this->getResponseWithRecords();
         unset($response->meta->request_id);
@@ -307,7 +307,7 @@ class ResultsProcessorTest extends SapphireTest
         $reflectionMethod->setAccessible(true);
 
         // Empty Results object
-        $results = Results::create(Query::create());
+        $results = Results::create(200, Query::create());
 
         $response = $this->getResponseWithRecords();
         unset($response->meta->engine->name);
@@ -326,7 +326,7 @@ class ResultsProcessorTest extends SapphireTest
         $reflectionMethod->setAccessible(true);
 
         // Empty Results object
-        $results = Results::create(Query::create());
+        $results = Results::create(200, Query::create());
 
         $response = $this->getResponseWithRecords();
         unset($response->meta->request_id);

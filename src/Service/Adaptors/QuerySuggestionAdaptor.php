@@ -8,7 +8,9 @@ use SilverStripe\Discoverer\Service\Results\Suggestions;
 use SilverStripe\Discoverer\Service\SearchService;
 use SilverStripe\DiscovererBifrost\Processors\QuerySuggestionRequestProcessor;
 use SilverStripe\DiscovererBifrost\Processors\QuerySuggestionsProcessor;
+use Silverstripe\Search\Client\Exception\QuerySuggestionPostNotFoundException;
 use Silverstripe\Search\Client\Exception\QuerySuggestionPostUnprocessableEntityException;
+use Silverstripe\Search\Client\Exception\UnexpectedStatusCodeException;
 use Throwable;
 
 class QuerySuggestionAdaptor extends BaseAdaptor implements QuerySuggestionAdaptorInterface
@@ -16,10 +18,6 @@ class QuerySuggestionAdaptor extends BaseAdaptor implements QuerySuggestionAdapt
 
     public function process(Suggestion $suggestion, string $indexSuffix): Suggestions
     {
-        // Instantiate our Suggestions class with empty data. This will still be returned if there is an Exception
-        // during communication with Bifröst (so that the page doesn't seriously break)
-        $suggestions = Suggestions::create();
-
         try {
             $request = QuerySuggestionRequestProcessor::singleton()->getRequest($suggestion);
             $response = $this->getClient()->querySuggestionPost(
@@ -27,10 +25,9 @@ class QuerySuggestionAdaptor extends BaseAdaptor implements QuerySuggestionAdapt
                 $request
             );
 
+            $suggestions = Suggestions::create(200);
             QuerySuggestionsProcessor::singleton()->getProcessedSuggestions($suggestions, $response);
-            // If we got this far, then the request was a success
-            $suggestions->setSuccess(true);
-        } catch (QuerySuggestionPostUnprocessableEntityException $e) {
+        } catch (QuerySuggestionPostNotFoundException | QuerySuggestionPostUnprocessableEntityException $e) {
             // Log the error without breaking the page ("warning" is the highest level we can log without changing the
             // client response to a 500)
             $this->getLogger()->warning(
@@ -40,14 +37,25 @@ class QuerySuggestionAdaptor extends BaseAdaptor implements QuerySuggestionAdapt
                     'responseBody' => (string) $e->getResponse()->getBody(),
                 ]
             );
-            // Our request was not a success
-            $suggestions->setSuccess(false);
+
+            $suggestions = Suggestions::create($e->getResponse()->getStatusCode());
+        } catch (UnexpectedStatusCodeException $e) {
+            // Log the error without breaking the page ("warning" is the highest level we can log without changing the
+            // client response to a 500)
+            $this->getLogger()->warning(
+                $e->getMessage(),
+                [
+                    'exception' => $e,
+                    'responseBody' => $e->getMessage(),
+                ]
+            );
+
+            $suggestions = Suggestions::create($e->getCode());
         } catch (Throwable $e) {
             // Log the error without breaking the page ("warning" is the highest level we can log without changing the
             // client response to a 500)
             $this->getLogger()->warning($e->getMessage(), ['exception' => $e]);
-            // Our request was not a success
-            $suggestions->setSuccess(false);
+            $suggestions = Suggestions::create(500);
         } finally {
             return $suggestions;
         }

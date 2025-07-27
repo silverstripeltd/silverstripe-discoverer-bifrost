@@ -8,7 +8,9 @@ use SilverStripe\Discoverer\Service\Results\Suggestions;
 use SilverStripe\Discoverer\Service\SearchService;
 use SilverStripe\DiscovererBifrost\Processors\SpellingSuggestionRequestProcessor;
 use SilverStripe\DiscovererBifrost\Processors\SpellingSuggestionsProcessor;
+use Silverstripe\Search\Client\Exception\SpellingSuggestionPostNotFoundException;
 use Silverstripe\Search\Client\Exception\SpellingSuggestionPostUnprocessableEntityException;
+use Silverstripe\Search\Client\Exception\UnexpectedStatusCodeException;
 use Throwable;
 
 class SpellingSuggestionAdaptor extends BaseAdaptor implements SpellingSuggestionAdaptorInterface
@@ -16,10 +18,6 @@ class SpellingSuggestionAdaptor extends BaseAdaptor implements SpellingSuggestio
 
     public function process(Suggestion $suggestion, string $indexSuffix): Suggestions
     {
-        // Instantiate our Suggestions class with empty data. This will still be returned if there is an Exception
-        // during communication with Bifröst (so that the page doesn't seriously break)
-        $suggestions = Suggestions::create();
-
         try {
             $request = SpellingSuggestionRequestProcessor::singleton()->getRequest($suggestion);
             $response = $this->getClient()->spellingSuggestionPost(
@@ -27,12 +25,9 @@ class SpellingSuggestionAdaptor extends BaseAdaptor implements SpellingSuggestio
                 $request
             );
 
+            $suggestions = Suggestions::create(200);
             SpellingSuggestionsProcessor::singleton()->getProcessedSuggestions($suggestions, $response);
-            // If we got this far, then the request was a success
-            $suggestions->setSuccess(true);
-        } catch (SpellingSuggestionPostUnprocessableEntityException $e) {
-            // Log the error without breaking the page ("warning" is the highest level we can log without changing the
-            // client response to a 500)
+        } catch (SpellingSuggestionPostNotFoundException | SpellingSuggestionPostUnprocessableEntityException $e) {
             $this->getLogger()->warning(
                 $e->getMessage(),
                 [
@@ -40,14 +35,19 @@ class SpellingSuggestionAdaptor extends BaseAdaptor implements SpellingSuggestio
                     'responseBody' => (string) $e->getResponse()->getBody(),
                 ]
             );
-            // Our request was not a success
-            $suggestions->setSuccess(false);
+            $suggestions = Suggestions::create($e->getResponse()->getStatusCode());
+        } catch (UnexpectedStatusCodeException $e) {
+            $this->getLogger()->warning(
+                $e->getMessage(),
+                [
+                    'exception' => $e,
+                    'responseBody' => $e->getMessage(),
+                ]
+            );
+            $suggestions = Suggestions::create($e->getCode());
         } catch (Throwable $e) {
-            // Log the error without breaking the page ("warning" is the highest level we can log without changing the
-            // client response to a 500)
             $this->getLogger()->warning($e->getMessage(), ['exception' => $e]);
-            // Our request was not a success
-            $suggestions->setSuccess(false);
+            $suggestions = Suggestions::create(500);
         } finally {
             return $suggestions;
         }

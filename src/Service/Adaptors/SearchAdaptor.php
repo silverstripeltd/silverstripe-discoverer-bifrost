@@ -9,7 +9,9 @@ use SilverStripe\Discoverer\Service\Results\Results;
 use SilverStripe\Discoverer\Service\SearchService;
 use SilverStripe\DiscovererBifrost\Processors\SearchRequestProcessor;
 use SilverStripe\DiscovererBifrost\Processors\SearchResultsProcessor;
+use Silverstripe\Search\Client\Exception\SearchPostNotFoundException;
 use Silverstripe\Search\Client\Exception\SearchPostUnprocessableEntityException;
+use Silverstripe\Search\Client\Exception\UnexpectedStatusCodeException;
 use stdClass;
 use Throwable;
 
@@ -21,10 +23,6 @@ class SearchAdaptor extends BaseAdaptor implements SearchAdaptorInterface
      */
     public function process(Query $query, string $indexSuffix): Results
     {
-        // Instantiate our Results class with empty data. This will still be returned if there is an Exception during
-        // communication with Bifröst (so that the page doesn't seriously break)
-        $results = Results::create($query);
-
         try {
             $request = SearchRequestProcessor::singleton()->getRequest($query);
             // searchPost() returns a stdClass() even though the typehint states otherwise
@@ -34,12 +32,9 @@ class SearchAdaptor extends BaseAdaptor implements SearchAdaptorInterface
                 $request
             );
 
+            $results = Results::create(200, $query);
             SearchResultsProcessor::singleton()->getProcessedResults($results, $response);
-            // If we got this far, then the request was a success
-            $results->setSuccess(true);
-        } catch (SearchPostUnprocessableEntityException $e) {
-            // Log the error without breaking the page ("warning" is the highest level we can log without changing the
-            // client response to a 500)
+        } catch (SearchPostNotFoundException|SearchPostUnprocessableEntityException $e) {
             $this->getLogger()->warning(
                 $e->getMessage(),
                 [
@@ -47,14 +42,19 @@ class SearchAdaptor extends BaseAdaptor implements SearchAdaptorInterface
                     'responseBody' => (string) $e->getResponse()->getBody(),
                 ]
             );
-            // Our request was not a success
-            $results->setSuccess(false);
+            $results = Results::create($e->getResponse()->getStatusCode(), $query);
+        } catch (UnexpectedStatusCodeException $e) {
+            $this->getLogger()->warning(
+                $e->getMessage(),
+                [
+                    'exception' => $e,
+                    'responseBody' => $e->getMessage(),
+                ]
+            );
+            $results = Results::create($e->getCode(), $query);
         } catch (Throwable $e) {
-            // Log the error without breaking the page ("warning" is the highest level we can log without changing the
-            // client response to a 500)
             $this->getLogger()->warning($e->getMessage(), ['exception' => $e]);
-            // Our request was not a success
-            $results->setSuccess(false);
+            $results = Results::create(500, $query);
         } finally {
             return $results;
         }
