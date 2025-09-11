@@ -23,7 +23,7 @@
     "require": {
         "php": "^8.3",
         "silverstripe/framework": "^6",
-        "silverstripe/silverstripe-discoverer": "dev-feature/v3-silverstripe-6",
+        "silverstripe/silverstripe-discoverer": "3.0.x-dev",
         "silverstripe/silverstripe-search-client-php": "0.0.7-alpha",
         "guzzlehttp/guzzle": "^7.9"
     },
