@@ -1,0 +1,8 @@
+---
+Name: discoverer-bifrost-service
+After: discoverer-service
+---
+SilverStripe\Core\Injector\Injector:
+  SilverStripe\Discoverer\Service\SearchService:
+    constructor:
+      indexPrefix: '`BIFROST_ENGINE_PREFIX`'
