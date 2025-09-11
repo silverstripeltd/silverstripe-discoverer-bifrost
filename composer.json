@@ -24,7 +24,7 @@
         "php": "^8.3",
         "silverstripe/framework": "^6",
         "silverstripe/silverstripe-discoverer": "dev-feature/v3-silverstripe-6",
-        "silverstripe/silverstripe-search-client-php": "0.0.6-alpha",
+        "silverstripe/silverstripe-search-client-php": "0.0.7-alpha",
         "guzzlehttp/guzzle": "^7.9"
     },
     "require-dev": {
