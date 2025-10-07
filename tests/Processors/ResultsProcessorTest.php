@@ -247,6 +247,41 @@ class ResultsProcessorTest extends SapphireTest
         $this->assertEquals('App\\Pages\\BlockPage', $sourceClass->forTemplate());
     }
 
+    public function testProcessFacets(): void
+    {
+        $resultsProcessor = SearchResultsProcessor::singleton();
+
+        /** @see SearchResultsProcessor::processFacets() */
+        $reflectionMethod = new ReflectionMethod($resultsProcessor, 'processFacets');
+        $reflectionMethod->setAccessible(true);
+
+        // Empty Results object
+        $results = Results::create(200, Query::create());
+
+        $response = $this->getResponseWithRecords();
+
+        $this->assertNull($reflectionMethod->invoke($resultsProcessor, $results, $response));
+
+        $response->facets = (object)[
+            "term_ids" => [
+                (object)[
+                    "type" => "value",
+                    "name" => "Terms",
+                    "data" => [
+                        (object)[
+                            "value" => 1,
+                            "count" => 1,
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $reflectionMethod->invoke($resultsProcessor, $results, $response);
+
+        $this->assertCount(1, $results->getFacets());
+    }
+
     public function testProcessRecordsWithAnalytics(): void
     {
         // Make sure Analytics is enabled

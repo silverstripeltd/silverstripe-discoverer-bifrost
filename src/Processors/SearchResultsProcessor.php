@@ -217,7 +217,7 @@ class SearchResultsProcessor
     {
         $facets = $response->facets ?? null;
 
-        if (!is_array($facets)) {
+        if (!$facets) {
             return;
         }
 
