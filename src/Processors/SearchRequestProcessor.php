@@ -12,6 +12,7 @@ use Silverstripe\Search\Client\Model\SearchRequest;
 use Silverstripe\Search\Client\Model\SearchRequestResultField;
 use Silverstripe\Search\Client\Model\SearchRequestResultFieldRaw;
 use Silverstripe\Search\Client\Model\SearchRequestResultFieldSnippet;
+use Silverstripe\Search\Client\Model\Tags;
 
 class SearchRequestProcessor
 {
@@ -29,6 +30,7 @@ class SearchRequestProcessor
         $resultFields = $this->getResultFieldsFromQuery($query);
         $searchFields = $this->getSearchFieldsFromQuery($query);
         $sort = $this->getSortFromQuery($query);
+        $tags = $this->getTagsFromQuery($query);
 
         if ($facets) {
             $request->setFacets($facets);
@@ -52,6 +54,10 @@ class SearchRequestProcessor
 
         if ($sort) {
             $request->setSort($sort);
+        }
+
+        if ($tags) {
+            $request->setAnalytics($tags);
         }
 
         return $request;
@@ -189,6 +195,18 @@ class SearchRequestProcessor
         }
 
         return $processedSort;
+    }
+
+    private function getTagsFromQuery(Query $query): ?Tags
+    {
+        if (!$query->getTags()) {
+            return null;
+        }
+
+        $processedTags = new Tags();
+        $processedTags->setTags($query->getTags());
+
+        return $processedTags;
     }
 
 }

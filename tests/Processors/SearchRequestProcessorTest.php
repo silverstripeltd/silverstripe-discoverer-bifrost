@@ -23,6 +23,7 @@ use Silverstripe\Search\Client\Model\Filters;
 use Silverstripe\Search\Client\Model\PaginationNoTotals;
 use Silverstripe\Search\Client\Model\SearchRequestResultFieldRaw;
 use Silverstripe\Search\Client\Model\SearchRequestResultFieldSnippet;
+use Silverstripe\Search\Client\Model\Tags;
 use stdClass;
 
 class SearchRequestProcessorTest extends SapphireTest
@@ -273,6 +274,31 @@ class SearchRequestProcessorTest extends SapphireTest
         );
     }
 
+    public function testGetTagsFromQuery(): void
+    {
+        $query = Query::create();
+
+        /** @see SearchRequestProcessor::getSortFromQuery() */
+        $reflectionMethod = new ReflectionMethod(SearchRequestProcessor::class, 'getTagsFromQuery');
+        $reflectionMethod->setAccessible(true);
+
+        // First test that the value is null if no sorts are set
+        $this->assertNull($reflectionMethod->invoke(SearchRequestProcessor::singleton(), $query));
+
+        // Add tags and retest
+        $query->addTag('tag1');
+        $query->addTag('tag2');
+
+        $expected = [
+            'tag1',
+            'tag2',
+        ];
+        $tags = $reflectionMethod->invoke(SearchRequestProcessor::singleton(), $query);
+
+        $this->assertInstanceOf(Tags::class, $tags);
+        $this->assertEqualsCanonicalizing($expected, $tags->getTags());
+    }
+
     public function testGetQueryParams(): void
     {
         $query = Query::create('search string');
@@ -288,6 +314,7 @@ class SearchRequestProcessorTest extends SapphireTest
         $query->addSort('field3');
         $query->filter('field1', 'value1', Criterion::EQUAL);
         $query->setPagination(10, 20);
+        $query->addTag('tag1');
 
         // This test is really just checking that each method was invoked, as the individual methods are all tested
         // in depth above
@@ -299,6 +326,7 @@ class SearchRequestProcessorTest extends SapphireTest
         $this->assertInstanceOf(ArrayObject::class, $request->getResultFields());
         $this->assertInstanceOf(ArrayObject::class, $request->getSearchFields());
         $this->assertInstanceOf(PaginationNoTotals::class, $request->getPage());
+        $this->assertInstanceOf(Tags::class, $request->getAnalytics());
         $this->assertIsArray($request->getSort());
     }
 
