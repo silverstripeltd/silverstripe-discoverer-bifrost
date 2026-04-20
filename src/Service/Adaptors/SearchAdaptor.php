@@ -2,61 +2,57 @@
 
 namespace SilverStripe\DiscovererBifrost\Service\Adaptors;
 
-use Exception;
 use SilverStripe\Discoverer\Query\Query;
 use SilverStripe\Discoverer\Service\Interfaces\SearchAdaptor as SearchAdaptorInterface;
 use SilverStripe\Discoverer\Service\Results\Results;
 use SilverStripe\Discoverer\Service\SearchService;
 use SilverStripe\DiscovererBifrost\Processors\SearchRequestProcessor;
 use SilverStripe\DiscovererBifrost\Processors\SearchResultsProcessor;
-use Silverstripe\Search\Client\Exception\SearchPostNotFoundException;
-use Silverstripe\Search\Client\Exception\SearchPostUnprocessableEntityException;
-use Silverstripe\Search\Client\Exception\UnexpectedStatusCodeException;
-use stdClass;
 use Throwable;
 
 class SearchAdaptor extends BaseAdaptor implements SearchAdaptorInterface
 {
 
-    /**
-     * @throws Exception
-     */
     public function process(Query $query, string $indexSuffix): Results
     {
         try {
             $request = SearchRequestProcessor::singleton()->getRequest($query);
-            // searchPost() returns a stdClass() even though the typehint states otherwise
-            /** @var stdClass $response */
-            $response = $this->getClient()->searchPost(
+            $response = $this->getClient()->search(
                 SearchService::singleton()->environmentizeIndex($indexSuffix),
                 $request
             );
 
-            $results = Results::create(200, $query);
-            SearchResultsProcessor::singleton()->getProcessedResults($results, $response);
-        } catch (SearchPostNotFoundException|SearchPostUnprocessableEntityException $e) {
-            $this->getLogger()->warning(
-                $e->getMessage(),
-                [
-                    'exception' => $e,
-                    'responseBody' => (string) $e->getResponse()->getBody(),
-                ]
-            );
-            $results = Results::create($e->getResponse()->getStatusCode(), $query);
-        } catch (UnexpectedStatusCodeException $e) {
-            $this->getLogger()->warning(
-                $e->getMessage(),
-                [
-                    'exception' => $e,
-                    'responseBody' => $e->getMessage(),
-                ]
-            );
-            $results = Results::create($e->getCode(), $query);
-        } catch (Throwable $e) {
-            $this->getLogger()->warning($e->getMessage(), ['exception' => $e]);
-            $results = Results::create(500, $query);
-        } finally {
+            $statusCode = $response->getStatusCode();
+            $results = Results::create($statusCode, $query);
+
+            // Valid response; process and return
+            if ($statusCode >= 200 && $statusCode < 300) {
+                SearchResultsProcessor::singleton()->getProcessedResults(
+                    $results,
+                    json_decode((string) $response->getBody())
+                );
+
+                return $results;
+            }
+
+            if ($statusCode >= 500) {
+                // Log the error without breaking the page ("warning" is the highest level we can log without changing
+                // the client response code)
+                $this->getLogger()->warning(
+                    sprintf('Search request failed with status %d', $statusCode),
+                    [
+                        'responseBody' => (string) $response->getBody(),
+                    ]
+                );
+            }
+
             return $results;
+        } catch (Throwable $e) {
+            // Log the error without breaking the page ("warning" is the highest level we can log without changing
+            // the client response code)
+            $this->getLogger()->warning($e->getMessage(), ['exception' => $e]);
+
+            return Results::create(500, $query);
         }
     }
 

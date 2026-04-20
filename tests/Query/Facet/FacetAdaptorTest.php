@@ -2,13 +2,14 @@
 
 namespace SilverStripe\DiscovererBifrost\Tests\Query\Facet;
 
-use ArrayObject;
-use Elastic\EnterpriseSearch\AppSearch\Schema\SimpleObject;
 use ReflectionMethod;
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\Discoverer\Query\Facet\Facet;
 use SilverStripe\Discoverer\Query\Facet\FacetCollection;
 use SilverStripe\DiscovererBifrost\Query\Facet\FacetAdaptor;
+use Silverstripe\Search\Client\Model\Search\FacetRange;
+use Silverstripe\Search\Client\Model\Search\FacetRangeObject;
+use Silverstripe\Search\Client\Model\Search\FacetValue;
 
 class FacetAdaptorTest extends SapphireTest
 {
@@ -24,28 +25,31 @@ class FacetAdaptorTest extends SapphireTest
         $facet->addRange(to: 4);
         $facet->addRange(name: 'test2');
 
-        $expected = [
-            [
-                'from' => 1,
-                'to' => 2,
-                'name' => 'test1',
-            ],
-            [
-                'from' => 3,
-            ],
-            [
-                'to' => 4,
-            ],
-            [
-                'name' => 'test2',
-            ],
-        ];
-
         /** @see FacetAdaptor::prepareRanges() */
         $reflectionMethod = new ReflectionMethod($adaptor, 'prepareRanges');
         $reflectionMethod->setAccessible(true);
 
-        $this->assertEqualsCanonicalizing($expected, $reflectionMethod->invoke($adaptor, $facet));
+        /** @var FacetRangeObject[] $ranges */
+        $ranges = $reflectionMethod->invoke($adaptor, $facet);
+
+        $this->assertCount(4, $ranges);
+
+        $this->assertInstanceOf(FacetRangeObject::class, $ranges[0]);
+        $this->assertEquals(1, $ranges[0]->getFrom());
+        $this->assertEquals(2, $ranges[0]->getTo());
+        $this->assertEquals('test1', $ranges[0]->getName());
+
+        $this->assertEquals(3, $ranges[1]->getFrom());
+        $this->assertNull($ranges[1]->getTo());
+        $this->assertNull($ranges[1]->getName());
+
+        $this->assertNull($ranges[2]->getFrom());
+        $this->assertEquals(4, $ranges[2]->getTo());
+        $this->assertNull($ranges[2]->getName());
+
+        $this->assertNull($ranges[3]->getFrom());
+        $this->assertNull($ranges[3]->getTo());
+        $this->assertEquals('test2', $ranges[3]->getName());
     }
 
     public function testPrepareRangesNoRange(): void
@@ -92,14 +96,13 @@ class FacetAdaptorTest extends SapphireTest
         $reflectionMethod = new ReflectionMethod($adaptor, 'prepareFacet');
         $reflectionMethod->setAccessible(true);
 
-        $expected = [
-            'type' => FacetAdaptor::TYPE_VALUE,
-            'name' => 'facetName1',
-            'size' => 3,
-        ];
-        $expected = new ArrayObject($expected);
+        /** @var FacetValue $result */
+        $result = $reflectionMethod->invoke($adaptor, $facet);
 
-        $this->assertEqualsCanonicalizing($expected, $reflectionMethod->invoke($adaptor, $facet));
+        $this->assertInstanceOf(FacetValue::class, $result);
+        $this->assertSame('value', $result->getType());
+        $this->assertSame('facetName1', $result->getName());
+        $this->assertSame(3, $result->getSize());
     }
 
     public function testPrepareFacetRange(): void
@@ -115,20 +118,14 @@ class FacetAdaptorTest extends SapphireTest
         $reflectionMethod = new ReflectionMethod($adaptor, 'prepareFacet');
         $reflectionMethod->setAccessible(true);
 
-        $expected = [
-            'type' => FacetAdaptor::TYPE_RANGE,
-            'name' => 'facetName1',
-            'ranges' => [
-                [
-                    'from' => 1,
-                    'to' => 2,
-                    'name' => 'test1',
-                ],
-            ],
-        ];
-        $expected = new ArrayObject($expected);
+        /** @var FacetRange $result */
+        $result = $reflectionMethod->invoke($adaptor, $facet);
 
-        $this->assertEqualsCanonicalizing($expected, $reflectionMethod->invoke($adaptor, $facet));
+        $this->assertInstanceOf(FacetRange::class, $result);
+        $this->assertSame('range', $result->getType());
+        $this->assertSame('facetName1', $result->getName());
+        $this->assertCount(1, $result->getRanges());
+        $this->assertInstanceOf(FacetRangeObject::class, $result->getRanges()[0]);
     }
 
     public function testPrepareFacets(): void
@@ -153,15 +150,15 @@ class FacetAdaptorTest extends SapphireTest
         $reflectionMethod = new ReflectionMethod($adaptor, 'prepareFacets');
         $reflectionMethod->setAccessible(true);
 
-        /** @var ArrayObject $simpleObject */
-        $simpleObject = $reflectionMethod->invoke($adaptor, $facetCollection);
+        $result = $reflectionMethod->invoke($adaptor, $facetCollection);
 
+        $this->assertIsArray($result);
         // Check that we have the expected properties
-        $this->assertArrayHasKey('fieldName1', $simpleObject);
-        $this->assertArrayHasKey('fieldName2', $simpleObject);
+        $this->assertArrayHasKey('fieldName1', $result);
+        $this->assertArrayHasKey('fieldName2', $result);
         // And that those properties have the expected number of facet records
-        $this->assertCount(2, $simpleObject['fieldName1']);
-        $this->assertCount(1, $simpleObject['fieldName2']);
+        $this->assertCount(2, $result['fieldName1']);
+        $this->assertCount(1, $result['fieldName2']);
     }
 
 }

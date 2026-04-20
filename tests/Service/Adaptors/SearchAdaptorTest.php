@@ -12,13 +12,11 @@ use Http\Client\Common\Plugin\HeaderAppendPlugin;
 use Http\Client\Common\PluginClient;
 use Http\Discovery\Psr17FactoryDiscovery;
 use Psr\Log\LoggerInterface;
-use ReflectionMethod;
 use SilverStripe\Core\Environment;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\Discoverer\Query\Query;
 use SilverStripe\Discoverer\Service\SearchService;
-use SilverStripe\DiscovererBifrost\Service\Adaptors\SearchAdaptor;
 use SilverStripe\DiscovererBifrost\Tests\Logger\QuietLogger;
 use Silverstripe\Search\Client\Client;
 use stdClass;
@@ -91,7 +89,11 @@ class SearchAdaptorTest extends SapphireTest
             ]),
         ];
 
-        $client = Client::create(new PluginClient($httpClient, $plugins));
+        $client = new Client(
+            new PluginClient($httpClient, $plugins),
+            Psr17FactoryDiscovery::findRequestFactory(),
+            Psr17FactoryDiscovery::findStreamFactory(),
+        );
 
         Injector::inst()->registerService($client, Client::class . '.searchClient');
         // Add our quiet logger, so that our API calls don't create any noise in our test report

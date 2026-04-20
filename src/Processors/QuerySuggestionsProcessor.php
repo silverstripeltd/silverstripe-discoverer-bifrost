@@ -6,7 +6,7 @@ use Exception;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Discoverer\Service\Results\Field;
 use SilverStripe\Discoverer\Service\Results\Suggestions;
-use Silverstripe\Search\Client\Model\QuerySuggestionResponse;
+use stdClass;
 
 class QuerySuggestionsProcessor
 {
@@ -16,13 +16,13 @@ class QuerySuggestionsProcessor
     /**
      * @throws Exception
      */
-    public function getProcessedSuggestions(Suggestions $suggestions, QuerySuggestionResponse $response): void
+    public function getProcessedSuggestions(Suggestions $suggestions, stdClass $response): void
     {
-        $results = $response->getResults() ?? [];
+        $results = $response->results ?? [];
 
         foreach ($results as $result) {
             $suggestions->addSuggestion(Field::create(
-                $result->getRaw() ?? null,
+                $result->raw ?? null,
             ));
         }
     }
