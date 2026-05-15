@@ -17,3 +17,5 @@ SilverStripe\Core\Injector\Injector:
     class: SilverStripe\DiscovererBifrost\Query\Filter\CriterionAdaptor
   SilverStripe\Discoverer\Service\Interfaces\SearchAdaptor:
     class: SilverStripe\DiscovererBifrost\Service\Adaptors\SearchAdaptor
+  SilverStripe\Discoverer\Service\Interfaces\ProcessAnalyticsAdaptor:
+    class: SilverStripe\DiscovererBifrost\Service\Adaptors\ProcessAnalyticsAdaptor

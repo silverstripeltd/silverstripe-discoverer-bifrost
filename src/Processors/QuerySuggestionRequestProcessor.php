@@ -4,7 +4,7 @@ namespace SilverStripe\DiscovererBifrost\Processors;
 
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Discoverer\Query\Suggestion;
-use Silverstripe\Search\Client\Model\QuerySuggestionRequest;
+use Silverstripe\Search\Client\Request\Search\QuerySuggestionRequest;
 
 class QuerySuggestionRequestProcessor
 {
@@ -13,8 +13,7 @@ class QuerySuggestionRequestProcessor
 
     public function getRequest(Suggestion $suggestion): QuerySuggestionRequest
     {
-        $request = new QuerySuggestionRequest();
-        $request->setQuery($suggestion->getQueryString());
+        $request = new QuerySuggestionRequest($suggestion->getQueryString());
 
         $limit = $suggestion->getLimit();
         $fields = $suggestion->getFields();

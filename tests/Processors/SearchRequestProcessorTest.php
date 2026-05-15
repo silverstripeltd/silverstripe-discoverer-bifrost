@@ -2,7 +2,6 @@
 
 namespace SilverStripe\DiscovererBifrost\Tests\Processors;
 
-use ArrayObject;
 use ReflectionMethod;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Dev\SapphireTest;
@@ -19,11 +18,13 @@ use SilverStripe\DiscovererBifrost\Query\Filter\CriteriaAdaptor;
 use SilverStripe\DiscovererBifrost\Query\Filter\CriterionAdaptor;
 use SilverStripe\DiscovererBifrost\Tests\Query\Facet\FacetAdaptorTest;
 use SilverStripe\DiscovererBifrost\Tests\Query\Filter\CriteriaAdaptorTest;
-use Silverstripe\Search\Client\Model\Filters;
-use Silverstripe\Search\Client\Model\PaginationNoTotals;
-use Silverstripe\Search\Client\Model\SearchRequestResultFieldRaw;
-use Silverstripe\Search\Client\Model\SearchRequestResultFieldSnippet;
-use stdClass;
+use Silverstripe\Search\Client\Model\Field\ResultField;
+use Silverstripe\Search\Client\Model\Field\ResultFieldRaw;
+use Silverstripe\Search\Client\Model\Field\ResultFieldSnippet;
+use Silverstripe\Search\Client\Model\Field\SearchFieldWeight;
+use Silverstripe\Search\Client\Model\Pagination;
+use Silverstripe\Search\Client\Model\Search\Filters;
+use Silverstripe\Search\Client\Model\Search\Tags;
 
 class SearchRequestProcessorTest extends SapphireTest
 {
@@ -58,9 +59,9 @@ class SearchRequestProcessorTest extends SapphireTest
         $query->addFacet($facetOne);
         $query->addFacet($facetTwo);
 
-        /** @var ArrayObject $facets */
         $facets = $reflectionMethod->invoke(SearchRequestProcessor::singleton(), $query);
 
+        $this->assertIsArray($facets);
         $this->assertArrayHasKey('fieldName1', $facets);
         $this->assertArrayHasKey('fieldName2', $facets);
     }
@@ -128,7 +129,7 @@ class SearchRequestProcessorTest extends SapphireTest
         // Set pagination and retest
         $query->setPagination(10, 0);
 
-        /** @var PaginationNoTotals $pagination */
+        /** @var Pagination $pagination */
         $pagination = $reflectionMethod->invoke(SearchRequestProcessor::singleton(), $query);
 
         $this->assertEquals(10, $pagination->getSize());
@@ -137,7 +138,7 @@ class SearchRequestProcessorTest extends SapphireTest
         // Set pagination and retest. Note: offset starts at 0, so an offset of 20 is page 3, not page 2
         $query->setPagination(10, 20);
 
-        /** @var PaginationNoTotals $pagination */
+        /** @var Pagination $pagination */
         $pagination = $reflectionMethod->invoke(SearchRequestProcessor::singleton(), $query);
 
         $this->assertEquals(10, $pagination->getSize());
@@ -163,51 +164,40 @@ class SearchRequestProcessorTest extends SapphireTest
         $query->addResultField('field4', 100);
         $query->addResultField('field4', 20, true);
 
-        /** @var ArrayObject $resultsFields */
+        /** @var array<string, ResultField> $resultsFields */
         $resultsFields = $reflectionMethod->invoke(SearchRequestProcessor::singleton(), $query);
 
         // Check that we have our two default result fields
         $this->assertArrayHasKey('record_base_class', $resultsFields);
         $this->assertArrayHasKey('record_id', $resultsFields);
         // Check that each of those default fields has a "raw" field
-        $this->assertTrue($resultsFields['record_base_class']->isInitialized('raw'));
-        $this->assertTrue($resultsFields['record_id']->isInitialized('raw'));
-        $this->assertInstanceOf(SearchRequestResultFieldRaw::class, $resultsFields['record_base_class']->getRaw());
-        $this->assertInstanceOf(SearchRequestResultFieldRaw::class, $resultsFields['record_id']->getRaw());
+        $this->assertInstanceOf(ResultFieldRaw::class, $resultsFields['record_base_class']->getRaw());
+        $this->assertInstanceOf(ResultFieldRaw::class, $resultsFields['record_id']->getRaw());
         // Check our custom result fields
         $this->assertArrayHasKey('field1', $resultsFields);
         $this->assertArrayHasKey('field2', $resultsFields);
         $this->assertArrayHasKey('field3', $resultsFields);
         $this->assertArrayHasKey('field4', $resultsFields);
 
-        // No snippet defined
-        $this->assertFalse($resultsFields['field1']->isInitialized('snippet'));
-        // Raw should be defined
-        $this->assertInstanceOf(SearchRequestResultFieldRaw::class, $resultsFields['field1']->getRaw());
-        // But raw.size was not defined
-        $this->assertFalse($resultsFields['field1']->getRaw()->isInitialized('size'));
+        // field1: No snippet defined, raw should be defined but raw.size was not defined
+        $this->assertNull($resultsFields['field1']->getSnippet());
+        $this->assertInstanceOf(ResultFieldRaw::class, $resultsFields['field1']->getRaw());
+        $this->assertNull($resultsFields['field1']->getRaw()->getSize());
 
-        // No raw defined
-        $this->assertFalse($resultsFields['field2']->isInitialized('raw'));
-        // Snippet should be defined
-        $this->assertInstanceOf(SearchRequestResultFieldSnippet::class, $resultsFields['field2']->getSnippet());
-        // But snippet.size was not defined
-        $this->assertFalse($resultsFields['field2']->getSnippet()->isInitialized('size'));
+        // field2: No raw defined, snippet should be defined but snippet.size was not defined
+        $this->assertNull($resultsFields['field2']->getRaw());
+        $this->assertInstanceOf(ResultFieldSnippet::class, $resultsFields['field2']->getSnippet());
+        $this->assertNull($resultsFields['field2']->getSnippet()->getSize());
 
-        // No snippet defined
-        $this->assertFalse($resultsFields['field3']->isInitialized('snippet'));
-        // Raw should be defined
-        $this->assertInstanceOf(SearchRequestResultFieldRaw::class, $resultsFields['field3']->getRaw());
-        // And raw.size was defined
+        // field3: No snippet defined, raw should be defined and raw.size was defined
+        $this->assertNull($resultsFields['field3']->getSnippet());
+        $this->assertInstanceOf(ResultFieldRaw::class, $resultsFields['field3']->getRaw());
         $this->assertEquals(10, $resultsFields['field3']->getRaw()->getSize());
 
-        // Raw should be defined
-        $this->assertInstanceOf(SearchRequestResultFieldRaw::class, $resultsFields['field4']->getRaw());
-        // And raw.size was defined
+        // field4: Both raw and snippet should be defined with sizes
+        $this->assertInstanceOf(ResultFieldRaw::class, $resultsFields['field4']->getRaw());
         $this->assertEquals(100, $resultsFields['field4']->getRaw()->getSize());
-        // Snippet should be defined
-        $this->assertInstanceOf(SearchRequestResultFieldSnippet::class, $resultsFields['field4']->getSnippet());
-        // And snippet.size was defined
+        $this->assertInstanceOf(ResultFieldSnippet::class, $resultsFields['field4']->getSnippet());
         $this->assertEquals(20, $resultsFields['field4']->getSnippet()->getSize());
     }
 
@@ -228,18 +218,17 @@ class SearchRequestProcessorTest extends SapphireTest
         // Weight added
         $query->addSearchField('field2', 2);
 
-        /** @var ArrayObject $searchFields */
+        /** @var array<string, SearchFieldWeight> $searchFields */
         $searchFields = $reflectionMethod->invoke(SearchRequestProcessor::singleton(), $query);
 
         $this->assertArrayHasKey('field1', $searchFields);
         $this->assertArrayHasKey('field2', $searchFields);
 
-        $fieldOneExpected = new ArrayObject();
-        $fieldTwoExpected = new ArrayObject();
-        $fieldTwoExpected['weight'] = 2;
+        $this->assertInstanceOf(SearchFieldWeight::class, $searchFields['field1']);
+        $this->assertNull($searchFields['field1']->getWeight());
 
-        $this->assertEquals($fieldOneExpected, $searchFields['field1']);
-        $this->assertEquals($fieldTwoExpected, $searchFields['field2']);
+        $this->assertInstanceOf(SearchFieldWeight::class, $searchFields['field2']);
+        $this->assertEquals(2, $searchFields['field2']->getWeight());
     }
 
     public function testGetSortFromQuery(): void
@@ -250,27 +239,47 @@ class SearchRequestProcessorTest extends SapphireTest
         $reflectionMethod = new ReflectionMethod(SearchRequestProcessor::class, 'getSortFromQuery');
         $reflectionMethod->setAccessible(true);
 
-        // First test that the value is null if no sorts are set
+        // First test that the value is empty if no sorts are set
         $this->assertEquals([], $reflectionMethod->invoke(SearchRequestProcessor::singleton(), $query));
 
         // Add sorts and retest
         $query->addSort('field1');
         $query->addSort('field2', Query::SORT_DESC);
 
-        $sortOne = new ArrayObject();
-        $sortOne['field1'] = 'asc';
-        $sortTwo = new ArrayObject();
-        $sortTwo['field2'] = 'desc';
-
         $expected = [
-            $sortOne,
-            $sortTwo,
+            ['field1' => 'asc'],
+            ['field2' => 'desc'],
         ];
 
         $this->assertEqualsCanonicalizing(
             $expected,
             $reflectionMethod->invoke(SearchRequestProcessor::singleton(), $query)
         );
+    }
+
+    public function testGetTagsFromQuery(): void
+    {
+        $query = Query::create();
+
+        /** @see SearchRequestProcessor::getTagsFromQuery() */
+        $reflectionMethod = new ReflectionMethod(SearchRequestProcessor::class, 'getTagsFromQuery');
+        $reflectionMethod->setAccessible(true);
+
+        // First test that the value is null if no tags are set
+        $this->assertNull($reflectionMethod->invoke(SearchRequestProcessor::singleton(), $query));
+
+        // Add tags and retest
+        $query->addTag('tag1');
+        $query->addTag('tag2');
+
+        $expected = [
+            'tag1',
+            'tag2',
+        ];
+        $tags = $reflectionMethod->invoke(SearchRequestProcessor::singleton(), $query);
+
+        $this->assertInstanceOf(Tags::class, $tags);
+        $this->assertEqualsCanonicalizing($expected, $tags->getTags());
     }
 
     public function testGetQueryParams(): void
@@ -288,18 +297,20 @@ class SearchRequestProcessorTest extends SapphireTest
         $query->addSort('field3');
         $query->filter('field1', 'value1', Criterion::EQUAL);
         $query->setPagination(10, 20);
+        $query->addTag('tag1');
 
         // This test is really just checking that each method was invoked, as the individual methods are all tested
         // in depth above
         $request = SearchRequestProcessor::singleton()->getRequest($query);
 
         $this->assertEquals('search string', $request->getQuery());
-        $this->assertInstanceOf(ArrayObject::class, $request->getFacets());
+        $this->assertIsArray($request->getFacets());
         $this->assertInstanceOf(Filters::class, $request->getFilters());
-        $this->assertInstanceOf(ArrayObject::class, $request->getResultFields());
-        $this->assertInstanceOf(ArrayObject::class, $request->getSearchFields());
-        $this->assertInstanceOf(PaginationNoTotals::class, $request->getPage());
-        $this->assertIsArray($request->getSort());
+        $this->assertIsArray($request->getResultFields());
+        $this->assertIsArray($request->getSearchFields());
+        $this->assertInstanceOf(Pagination::class, $request->getPage());
+        $this->assertInstanceOf(Tags::class, $request->getAnalytics());
+        $this->assertIsArray($request->getSorts());
     }
 
     protected function setUp(): void

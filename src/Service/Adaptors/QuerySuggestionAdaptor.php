@@ -8,9 +8,6 @@ use SilverStripe\Discoverer\Service\Results\Suggestions;
 use SilverStripe\Discoverer\Service\SearchService;
 use SilverStripe\DiscovererBifrost\Processors\QuerySuggestionRequestProcessor;
 use SilverStripe\DiscovererBifrost\Processors\QuerySuggestionsProcessor;
-use Silverstripe\Search\Client\Exception\QuerySuggestionPostNotFoundException;
-use Silverstripe\Search\Client\Exception\QuerySuggestionPostUnprocessableEntityException;
-use Silverstripe\Search\Client\Exception\UnexpectedStatusCodeException;
 use Throwable;
 
 class QuerySuggestionAdaptor extends BaseAdaptor implements QuerySuggestionAdaptorInterface
@@ -20,44 +17,42 @@ class QuerySuggestionAdaptor extends BaseAdaptor implements QuerySuggestionAdapt
     {
         try {
             $request = QuerySuggestionRequestProcessor::singleton()->getRequest($suggestion);
-            $response = $this->getClient()->querySuggestionPost(
+            $response = $this->getClient()->querySuggestion(
                 SearchService::singleton()->environmentizeIndex($indexSuffix),
                 $request
             );
 
-            $suggestions = Suggestions::create(200);
-            QuerySuggestionsProcessor::singleton()->getProcessedSuggestions($suggestions, $response);
-        } catch (QuerySuggestionPostNotFoundException | QuerySuggestionPostUnprocessableEntityException $e) {
-            // Log the error without breaking the page ("warning" is the highest level we can log without changing the
-            // client response to a 500)
-            $this->getLogger()->warning(
-                $e->getMessage(),
-                [
-                    'exception' => $e,
-                    'responseBody' => (string) $e->getResponse()->getBody(),
-                ]
-            );
+            $statusCode = $response->getStatusCode();
+            $suggestions = Suggestions::create($statusCode);
 
-            $suggestions = Suggestions::create($e->getResponse()->getStatusCode());
-        } catch (UnexpectedStatusCodeException $e) {
-            // Log the error without breaking the page ("warning" is the highest level we can log without changing the
-            // client response to a 500)
-            $this->getLogger()->warning(
-                $e->getMessage(),
-                [
-                    'exception' => $e,
-                    'responseBody' => $e->getMessage(),
-                ]
-            );
+            // Valid response; process and return
+            if ($statusCode >= 200 && $statusCode < 300) {
+                QuerySuggestionsProcessor::singleton()->getProcessedSuggestions(
+                    $suggestions,
+                    json_decode((string) $response->getBody())
+                );
 
-            $suggestions = Suggestions::create($e->getCode());
+                return $suggestions;
+            }
+
+            if ($statusCode >= 500) {
+                // Log the error without breaking the page ("warning" is the highest level we can log without changing
+                // the client response code)
+                $this->getLogger()->warning(
+                    sprintf('Query suggestion request failed with status %d', $statusCode),
+                    [
+                        'responseBody' => (string) $response->getBody(),
+                    ]
+                );
+            }
+
+            return $suggestions;
         } catch (Throwable $e) {
             // Log the error without breaking the page ("warning" is the highest level we can log without changing the
-            // client response to a 500)
+            // client response code)
             $this->getLogger()->warning($e->getMessage(), ['exception' => $e]);
-            $suggestions = Suggestions::create(500);
-        } finally {
-            return $suggestions;
+
+            return Suggestions::create(500);
         }
     }
 

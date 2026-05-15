@@ -6,7 +6,7 @@ use Exception;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Discoverer\Service\Results\Field;
 use SilverStripe\Discoverer\Service\Results\Suggestions;
-use Silverstripe\Search\Client\Model\SpellingSuggestionResponse;
+use stdClass;
 
 class SpellingSuggestionsProcessor
 {
@@ -16,14 +16,14 @@ class SpellingSuggestionsProcessor
     /**
      * @throws Exception
      */
-    public function getProcessedSuggestions(Suggestions $suggestions, SpellingSuggestionResponse $response): void
+    public function getProcessedSuggestions(Suggestions $suggestions, stdClass $response): void
     {
-        $results = $response->getResults() ?? [];
+        $results = $response->results ?? [];
 
         foreach ($results as $result) {
             $suggestions->addSuggestion(Field::create(
-                $result->getRaw() ?? null,
-                $result->getSnippet() ?? null,
+                $result->raw ?? null,
+                $result->snippet ?? null,
             ));
         }
     }

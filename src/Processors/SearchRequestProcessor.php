@@ -2,16 +2,17 @@
 
 namespace SilverStripe\DiscovererBifrost\Processors;
 
-use ArrayObject;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Discoverer\Query\Filter\Criteria;
 use SilverStripe\Discoverer\Query\Query;
-use Silverstripe\Search\Client\Model\Filters;
-use Silverstripe\Search\Client\Model\PaginationNoTotals;
-use Silverstripe\Search\Client\Model\SearchRequest;
-use Silverstripe\Search\Client\Model\SearchRequestResultField;
-use Silverstripe\Search\Client\Model\SearchRequestResultFieldRaw;
-use Silverstripe\Search\Client\Model\SearchRequestResultFieldSnippet;
+use Silverstripe\Search\Client\Model\Field\ResultField;
+use Silverstripe\Search\Client\Model\Field\ResultFieldRaw;
+use Silverstripe\Search\Client\Model\Field\ResultFieldSnippet;
+use Silverstripe\Search\Client\Model\Field\SearchFieldWeight;
+use Silverstripe\Search\Client\Model\Pagination;
+use Silverstripe\Search\Client\Model\Search\Filters;
+use Silverstripe\Search\Client\Model\Search\Tags;
+use Silverstripe\Search\Client\Request\Search\SearchRequest;
 
 class SearchRequestProcessor
 {
@@ -20,8 +21,7 @@ class SearchRequestProcessor
 
     public function getRequest(Query $query): SearchRequest
     {
-        $request = new SearchRequest();
-        $request->setQuery($query->getQueryString());
+        $request = new SearchRequest($query->getQueryString());
 
         $facets = $this->getFacetsFromQuery($query);
         $filters = $this->getFiltersFromQuery($query);
@@ -29,6 +29,7 @@ class SearchRequestProcessor
         $resultFields = $this->getResultFieldsFromQuery($query);
         $searchFields = $this->getSearchFieldsFromQuery($query);
         $sort = $this->getSortFromQuery($query);
+        $tags = $this->getTagsFromQuery($query);
 
         if ($facets) {
             $request->setFacets($facets);
@@ -51,13 +52,17 @@ class SearchRequestProcessor
         }
 
         if ($sort) {
-            $request->setSort($sort);
+            $request->setSorts($sort);
+        }
+
+        if ($tags) {
+            $request->setAnalytics($tags);
         }
 
         return $request;
     }
 
-    private function getFacetsFromQuery(Query $query): ?ArrayObject
+    private function getFacetsFromQuery(Query $query): ?array
     {
         if (!$query->getFacetCollection()->getFacets()) {
             return null;
@@ -98,7 +103,7 @@ class SearchRequestProcessor
         return $filters;
     }
 
-    private function getPaginationFromQuery(Query $query): ?PaginationNoTotals
+    private function getPaginationFromQuery(Query $query): ?Pagination
     {
         if (!$query->hasPagination()) {
             return null;
@@ -111,67 +116,55 @@ class SearchRequestProcessor
         // Bifröst uses page numbers instead of offset, so we need to convert. Note: Offset starts at 0
         $pageNum = (int) ceil($offset / $limit) + 1;
 
-        $pagination = new PaginationNoTotals();
-        $pagination->setSize($limit);
-        $pagination->setCurrent($pageNum);
-
-        return $pagination;
+        return new Pagination($pageNum, $limit);
     }
 
-    private function getResultFieldsFromQuery(Query $query): ?ArrayObject
+    /**
+     * @return array<string, ResultField>|null
+     */
+    private function getResultFieldsFromQuery(Query $query): ?array
     {
         if (!$query->getResultFields()) {
             return null;
         }
 
-        $resultFields = new ArrayObject();
+        $resultFields = [];
         // Ensure we include the default fields, to allow us to map these documents back to Silverstripe DataObjects
-        $resultFields['record_base_class'] = new SearchRequestResultField();
-        $resultFields['record_base_class']->setRaw(new SearchRequestResultFieldRaw());
-        $resultFields['record_id'] = new SearchRequestResultField();
-        $resultFields['record_id']->setRaw(new SearchRequestResultFieldRaw());
-        $resultFields['id'] = new SearchRequestResultField();
-        $resultFields['id']->setRaw(new SearchRequestResultFieldRaw());
+        $resultFields['record_base_class'] = (new ResultField())->setRaw(new ResultFieldRaw());
+        $resultFields['record_id'] = (new ResultField())->setRaw(new ResultFieldRaw());
+        $resultFields['id'] = (new ResultField())->setRaw(new ResultFieldRaw());
 
         foreach ($query->getResultFields() as $field) {
             $fieldName = $field->getFieldName();
             $fieldSize = $field->getLength();
-            $fieldType = $field->isFormatted()
-                ? new SearchRequestResultFieldSnippet()
-                : new SearchRequestResultFieldRaw();
 
             if (!isset($resultFields[$fieldName])) {
-                $resultFields[$fieldName] = new SearchRequestResultField();
+                $resultFields[$fieldName] = new ResultField();
             }
 
-            if ($fieldSize) {
-                $fieldType->setSize($fieldSize);
+            if ($field->isFormatted()) {
+                $resultFields[$fieldName]->setSnippet(new ResultFieldSnippet($fieldSize ?: null));
+            } else {
+                $resultFields[$fieldName]->setRaw(new ResultFieldRaw($fieldSize ?: null));
             }
-
-            $field->isFormatted()
-                ? $resultFields[$fieldName]->setSnippet($fieldType)
-                : $resultFields[$fieldName]->setRaw($fieldType);
         }
 
         return $resultFields;
     }
 
-    private function getSearchFieldsFromQuery(Query $query): ?ArrayObject
+    /**
+     * @return array<string, SearchFieldWeight>|null
+     */
+    private function getSearchFieldsFromQuery(Query $query): ?array
     {
         if (!$query->getSearchFields()) {
             return null;
         }
 
-        $searchFields = new ArrayObject();
+        $searchFields = [];
 
         foreach ($query->getSearchFields() as $fieldName => $weight) {
-            $searchFields[$fieldName] = new ArrayObject();
-
-            if (!$weight) {
-                continue;
-            }
-
-            $searchFields[$fieldName]['weight'] = $weight;
+            $searchFields[$fieldName] = new SearchFieldWeight($weight ?: null);
         }
 
         return $searchFields;
@@ -182,13 +175,19 @@ class SearchRequestProcessor
         $processedSort = [];
 
         foreach ($query->getSort() as $fieldName => $direction) {
-            $sort = new ArrayObject();
-            $sort[$fieldName] = strtolower($direction);
-
-            $processedSort[] = $sort;
+            $processedSort[] = [$fieldName => strtolower($direction)];
         }
 
         return $processedSort;
+    }
+
+    private function getTagsFromQuery(Query $query): ?Tags
+    {
+        if (!$query->getTags()) {
+            return null;
+        }
+
+        return new Tags($query->getTags());
     }
 
 }

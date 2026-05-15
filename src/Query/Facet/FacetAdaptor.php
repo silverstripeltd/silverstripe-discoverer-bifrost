@@ -2,25 +2,19 @@
 
 namespace SilverStripe\DiscovererBifrost\Query\Facet;
 
-use ArrayObject;
 use SilverStripe\Discoverer\Query\Facet\Facet;
 use SilverStripe\Discoverer\Query\Facet\FacetAdaptor as FacetAdaptorInterface;
 use SilverStripe\Discoverer\Query\Facet\FacetCollection;
+use Silverstripe\Search\Client\Model\Search\FacetRange;
+use Silverstripe\Search\Client\Model\Search\FacetRangeObject;
+use Silverstripe\Search\Client\Model\Search\FacetValue;
 
 class FacetAdaptor implements FacetAdaptorInterface
 {
 
-    public const string TYPE_VALUE = 'value';
-    public const string TYPE_RANGE = 'range';
-
-    private const array TYPE_CONVERSION = [
-        Facet::TYPE_VALUE => self::TYPE_VALUE,
-        Facet::TYPE_RANGE => self::TYPE_RANGE,
-    ];
-
     public function prepareFacets(FacetCollection $facetCollection): mixed
     {
-        $facets = new ArrayObject();
+        $facets = [];
 
         foreach ($facetCollection->getFacets() as $facet) {
             $fieldName = $facet->getFieldName();
@@ -35,32 +29,35 @@ class FacetAdaptor implements FacetAdaptorInterface
         return $facets;
     }
 
-    private function prepareFacet(Facet $facet): ArrayObject
+    private function prepareFacet(Facet $facet): FacetValue|FacetRange
     {
-        $preparedFacet = new ArrayObject();
-        $preparedFacet['type'] = self::TYPE_CONVERSION[$facet->getType()];
-
-        if ($facet->getName()) {
-            $preparedFacet['name'] = $facet->getName();
-        }
-
         if ($facet->getType() === Facet::TYPE_VALUE) {
+            $preparedFacet = new FacetValue();
+
+            if ($facet->getName()) {
+                $preparedFacet->setName($facet->getName());
+            }
+
             if ($facet->getLimit()) {
-                $preparedFacet['size'] = $facet->getLimit();
+                $preparedFacet->setSize($facet->getLimit());
             }
 
             return $preparedFacet;
         }
 
         $ranges = $this->prepareRanges($facet);
+        $preparedFacet = new FacetRange($ranges ?? []);
 
-        if ($ranges) {
-            $preparedFacet['ranges'] = $ranges;
+        if ($facet->getName()) {
+            $preparedFacet->setName($facet->getName());
         }
 
         return $preparedFacet;
     }
 
+    /**
+     * @return FacetRangeObject[]|null
+     */
     private function prepareRanges(Facet $facet): ?array
     {
         if (!$facet->getRanges()) {
@@ -70,28 +67,15 @@ class FacetAdaptor implements FacetAdaptorInterface
         $ranges = [];
 
         foreach ($facet->getRanges() as $range) {
-            $preparedRange = [];
             $from = $range->getFrom();
             $to = $range->getTo();
             $name = $range->getName();
 
-            if ($from) {
-                $preparedRange['from'] = $from;
-            }
-
-            if ($to) {
-                $preparedRange['to'] = $to;
-            }
-
-            if ($name) {
-                $preparedRange['name'] = $name;
-            }
-
-            if (count($preparedRange) === 0) {
+            if ($from === null && $to === null && $name === null) {
                 continue;
             }
 
-            $ranges[] = $preparedRange;
+            $ranges[] = new FacetRangeObject($from, $to, $name);
         }
 
         if (count($ranges) === 0) {
