@@ -282,6 +282,26 @@ class SearchRequestProcessorTest extends SapphireTest
         $this->assertEqualsCanonicalizing($expected, $tags->getTags());
     }
 
+    public function testPrecisionIsPassedThroughWhenSet(): void
+    {
+        $query = Query::create('search string');
+        $query->setPrecision(10);
+
+        $request = SearchRequestProcessor::singleton()->getRequest($query);
+
+        $this->assertEquals(10, $request->getPrecision());
+    }
+
+    public function testPrecisionIsOmittedWhenNotSet(): void
+    {
+        $query = Query::create('search string');
+
+        $request = SearchRequestProcessor::singleton()->getRequest($query);
+
+        // Null lets the engine use its configured (dashboard) precision
+        $this->assertNull($request->getPrecision());
+    }
+
     public function testGetQueryParams(): void
     {
         $query = Query::create('search string');
@@ -298,6 +318,7 @@ class SearchRequestProcessorTest extends SapphireTest
         $query->filter('field1', 'value1', Criterion::EQUAL);
         $query->setPagination(10, 20);
         $query->addTag('tag1');
+        $query->setPrecision(7);
 
         // This test is really just checking that each method was invoked, as the individual methods are all tested
         // in depth above
@@ -311,6 +332,7 @@ class SearchRequestProcessorTest extends SapphireTest
         $this->assertInstanceOf(Pagination::class, $request->getPage());
         $this->assertInstanceOf(Tags::class, $request->getAnalytics());
         $this->assertIsArray($request->getSorts());
+        $this->assertEquals(7, $request->getPrecision());
     }
 
     protected function setUp(): void

@@ -59,6 +59,11 @@ class SearchRequestProcessor
             $request->setAnalytics($tags);
         }
 
+        // When null, the engine's configured (dashboard) precision is used
+        if ($query->getPrecision() !== null) {
+            $request->setPrecision($query->getPrecision());
+        }
+
         return $request;
     }
 
