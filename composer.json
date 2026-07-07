@@ -23,8 +23,8 @@
     "require": {
         "php": "^8.3",
         "silverstripe/framework": "^6",
-        "silverstripe/silverstripe-discoverer": "^3.0.1",
-        "silverstripe/silverstripe-search-client-php": "^1",
+        "silverstripe/silverstripe-discoverer": "^3.1",
+        "silverstripe/silverstripe-search-client-php": "^1.1",
         "guzzlehttp/guzzle": "^7.9",
         "php-http/client-common": "^2.7",
         "php-http/discovery": "^1.20"
@@ -54,7 +54,7 @@
     "prefer-stable": true,
     "extra": {
         "branch-alias": {
-            "dev-main": "3.0.x-dev"
+            "dev-main": "3.2.x-dev"
         }
     }
 }
