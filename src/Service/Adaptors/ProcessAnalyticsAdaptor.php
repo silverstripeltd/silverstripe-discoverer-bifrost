@@ -2,6 +2,7 @@
 
 namespace SilverStripe\DiscovererBifrost\Service\Adaptors;
 
+use Elastic\EnterpriseSearch\AppSearch\Schema\ClickParams;
 use Elastic\EnterpriseSearch\Client;
 use Psr\Log\LoggerInterface;
 use SilverStripe\Core\Injector\Injector;
@@ -43,7 +44,14 @@ class ProcessAnalyticsAdaptor extends BaseAdaptor implements ProcessAnalyticsAda
                 return;
             }
 
-            $request = ClickPost::create($engineName, (string) $requestId, (string) $documentId);
+            $params = Injector::inst()->create(
+                ClickParams::class,
+                (string) $analyticsData->getQueryString(),
+                (string) $documentId
+            );
+            $params->request_id = (string) $requestId;
+
+            $request = ClickPost::create($engineName, $params);
 
             $response = $this->getSearchClient()->appSearch()->getTransport()->sendRequest($request->getRequest());
             $statusCode = $response->getStatusCode();
