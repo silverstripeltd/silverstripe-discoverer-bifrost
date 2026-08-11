@@ -73,6 +73,8 @@
         <exclude name="SlevomatCodingStandard.TypeHints.DisallowMixedTypeHint"/>
         <!-- Array type hint syntax is very useful -->
         <exclude name="SlevomatCodingStandard.TypeHints.DisallowArrayTypeHintSyntax"/>
+        <!-- Typed class constants are PHP 8.3+, and this module still supports PHP 8.1 -->
+        <exclude name="SlevomatCodingStandard.TypeHints.ClassConstantTypeHint.MissingNativeTypeHint"/>
         <!-- Allow private static -->
         <exclude name="SlevomatCodingStandard.Classes.UnusedPrivateElements.UnusedProperty"/>
         <!-- Even if you strictly type, there are other reasons to add a DocComment (EG: to add @codeCoverageIgnore -->
@@ -151,15 +153,22 @@
     <rule ref="SlevomatCodingStandard.Namespaces.UnusedUses">
         <properties>
             <property name="searchAnnotations" type="bool" value="true"/>
-            <property name="ignoredAnnotationNames" type="array" value="@config"/>
+            <property name="ignoredAnnotationNames" type="array">
+                <element value="@config"/>
+            </property>
         </properties>
     </rule>
 
     <rule ref="SlevomatCodingStandard.Files.TypeNameMatchesFileName">
         <properties>
             <!-- Set the root namespace for our src dir and phpunit dir. Please change these as required -->
-            <property name="rootNamespaces" type="array" value="src=>SilverStripe\DiscovererBifrost,tests=>SilverStripe\DiscovererBifrost\Tests"/>
-            <property name="ignoredNamespaces" type="array" value="Slevomat\Services"/>
+            <property name="rootNamespaces" type="array">
+                <element key="src" value="SilverStripe\DiscovererBifrost"/>
+                <element key="tests" value="SilverStripe\DiscovererBifrost\Tests"/>
+            </property>
+            <property name="ignoredNamespaces" type="array">
+                <element value="Slevomat\Services"/>
+            </property>
         </properties>
     </rule>
 
