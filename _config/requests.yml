@@ -6,5 +6,3 @@ Only:
 SilverStripe\Core\Injector\Injector:
   Elastic\EnterpriseSearch\AppSearch\Request\Search:
     class: SilverStripe\DiscovererBifrost\Service\Requests\Search
-  Elastic\EnterpriseSearch\AppSearch\Request\LogClickthrough:
-    class: SilverStripe\DiscovererBifrost\Service\Requests\ClickPost
