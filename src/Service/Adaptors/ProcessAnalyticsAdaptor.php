@@ -56,7 +56,10 @@ class ProcessAnalyticsAdaptor extends BaseAdaptor implements ProcessAnalyticsAda
             $response = $this->getSearchClient()->appSearch()->getTransport()->sendRequest($request->getRequest());
             $statusCode = $response->getStatusCode();
 
-            if ($statusCode >= 500) {
+            // Report every unsuccessful response, not just server errors. A query API key without the analytics_click
+            // permission, or an engine the key cannot reach, comes back as a 4xx, and those are exactly the
+            // misconfigurations we want to see rather than silently drop
+            if ($statusCode < 200 || $statusCode >= 300) {
                 // Log the error without breaking the page ("warning" is the highest level we can log without changing
                 // the response code)
                 $this->logWarning(
