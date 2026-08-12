@@ -2,8 +2,7 @@
 
 namespace SilverStripe\DiscovererBifrost\Service\Adaptors;
 
-use Elastic\EnterpriseSearch\Client;
-use Psr\Log\LoggerInterface;
+use Elastic\EnterpriseSearch\AppSearch\Schema\ClickParams;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Discoverer\Analytics\AnalyticsData;
 use SilverStripe\Discoverer\Service\Interfaces\ProcessAnalyticsAdaptor as ProcessAnalyticsAdaptorInterface;
@@ -31,7 +30,7 @@ class ProcessAnalyticsAdaptor extends BaseAdaptor implements ProcessAnalyticsAda
             if (!$engineName || !$requestId || !$documentId) {
                 // Log the error without breaking the page ("warning" is the highest level we can log without changing
                 // the response code)
-                $this->logWarning(
+                $this->getLogger()->warning(
                     'Analytics data is missing required fields',
                     [
                         'engineName' => $engineName,
@@ -43,15 +42,25 @@ class ProcessAnalyticsAdaptor extends BaseAdaptor implements ProcessAnalyticsAda
                 return;
             }
 
-            $request = ClickPost::create($engineName, (string) $requestId, (string) $documentId);
+            $params = Injector::inst()->create(
+                ClickParams::class,
+                (string) $analyticsData->getQueryString(),
+                (string) $documentId
+            );
+            $params->request_id = (string) $requestId;
 
-            $response = $this->getSearchClient()->appSearch()->getTransport()->sendRequest($request->getRequest());
+            $request = ClickPost::create($engineName, $params);
+
+            $response = $this->getClient()->appSearch()->getTransport()->sendRequest($request->getRequest());
             $statusCode = $response->getStatusCode();
 
-            if ($statusCode >= 500) {
+            // Report every unsuccessful response, not just server errors. A query API key without the analytics_click
+            // permission, or an engine the key cannot reach, comes back as a 4xx, and those are exactly the
+            // misconfigurations we want to see rather than silently drop
+            if ($statusCode < 200 || $statusCode >= 300) {
                 // Log the error without breaking the page ("warning" is the highest level we can log without changing
                 // the response code)
-                $this->logWarning(
+                $this->getLogger()->warning(
                     sprintf('Analytics click request failed with status %d', $statusCode),
                     [
                         'responseBody' => (string) $response->getBody(),
@@ -61,33 +70,7 @@ class ProcessAnalyticsAdaptor extends BaseAdaptor implements ProcessAnalyticsAda
         } catch (Throwable $e) {
             // Log the error without breaking the page ("warning" is the highest level we can log without changing
             // the response code)
-            $this->logWarning($e->getMessage(), ['exception' => $e]);
-        }
-    }
-
-    /**
-     * The middleware that reaches this adaptor runs on every request, including ones where this object was built
-     * without its BaseAdaptor dependencies (a config manifest still holding an older version of this class does it).
-     * Fall back to the service directly rather than calling a method on null, and let an unresolvable service throw
-     * so that process() can log why
-     */
-    private function getSearchClient(): Client
-    {
-        return $this->getClient() ?? Injector::inst()->get(Client::class . '.searchClient');
-    }
-
-    /**
-     * Analytics must never break the page it was collected on, so this has to hold up even when there is no logger to
-     * report to - see getSearchClient() for how that happens
-     */
-    private function logWarning(string $message, array $context = []): void
-    {
-        try {
-            $logger = $this->getLogger() ?? Injector::inst()->get(LoggerInterface::class . '.errorhandler');
-
-            $logger->warning($message, $context);
-        } catch (Throwable) {
-            // There is nowhere left to report this
+            $this->getLogger()->warning($e->getMessage(), ['exception' => $e]);
         }
     }
 
