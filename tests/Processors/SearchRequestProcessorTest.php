@@ -5,6 +5,7 @@ namespace SilverStripe\DiscovererBifrost\Tests\Processors;
 use ReflectionMethod;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Dev\SapphireTest;
+use SilverStripe\Discoverer\Query\Boost;
 use SilverStripe\Discoverer\Query\Facet\Facet;
 use SilverStripe\Discoverer\Query\Facet\FacetAdaptor as FacetAdaptorInterface;
 use SilverStripe\Discoverer\Query\Filter\Criteria;
@@ -319,6 +320,7 @@ class SearchRequestProcessorTest extends SapphireTest
         $query->setPagination(10, 20);
         $query->addTag('tag1');
         $query->setPrecision(7);
+        $query->addBoost('field4', Boost::value(['value4'], 2));
 
         // This test is really just checking that each method was invoked, as the individual methods are all tested
         // in depth above
@@ -333,6 +335,7 @@ class SearchRequestProcessorTest extends SapphireTest
         $this->assertInstanceOf(Tags::class, $request->getAnalytics());
         $this->assertIsArray($request->getSorts());
         $this->assertEquals(7, $request->getPrecision());
+        $this->assertIsArray($request->getBoosts());
     }
 
     protected function setUp(): void

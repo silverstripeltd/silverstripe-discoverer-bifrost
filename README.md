@@ -100,6 +100,15 @@ $results = $service->search($query, '<suffix>');
 Debug::dump($results);
 ```
 
+Boosts added with `Query::addBoost()` are sent with the request as query-time boosts. The Silverstripe Search Service accepts a factor between 0 and 10; a factor outside that range throws an `InvalidArgumentException` when the search request is built:
+
+```php
+use SilverStripe\Discoverer\Query\Boost;
+
+$query->addBoost('featured', Boost::value(['true'], 5));
+$query->addBoost('published_date', Boost::proximity('now-7d', Boost::FUNCTION_EXPONENTIAL));
+```
+
 ### Processing results
 
 For this quick example, we'll assume we had a couple of fields in our engine: `title`, `content` (more on fields in [Understanding fields and results](#understanding-fields-and-results))

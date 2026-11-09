@@ -2,9 +2,12 @@
 
 namespace SilverStripe\DiscovererBifrost\Processors;
 
+use InvalidArgumentException;
 use SilverStripe\Core\Injector\Injectable;
+use SilverStripe\Discoverer\Query\Boost as QueryBoost;
 use SilverStripe\Discoverer\Query\Filter\Criteria;
 use SilverStripe\Discoverer\Query\Query;
+use Silverstripe\Search\Client\Model\Field\Boost;
 use Silverstripe\Search\Client\Model\Field\ResultField;
 use Silverstripe\Search\Client\Model\Field\ResultFieldRaw;
 use Silverstripe\Search\Client\Model\Field\ResultFieldSnippet;
@@ -64,7 +67,66 @@ class SearchRequestProcessor
             $request->setPrecision($query->getPrecision());
         }
 
+        // Only send boosts when some are set, as an empty set would replace the engine's stored boosts
+        $boosts = $this->getBoostsFromQuery($query);
+
+        if ($boosts !== null) {
+            $request->setBoosts($boosts);
+        }
+
         return $request;
+    }
+
+    /**
+     * @return array<string, array<int, Boost>>|null
+     * @throws InvalidArgumentException
+     */
+    private function getBoostsFromQuery(Query $query): ?array
+    {
+        if (!$query->getBoosts()) {
+            return null;
+        }
+
+        $boosts = [];
+
+        foreach ($query->getBoosts() as $fieldName => $fieldBoosts) {
+            foreach ($fieldBoosts as $queryBoost) {
+                $boosts[$fieldName][] = $this->buildBoost($fieldName, $queryBoost);
+            }
+        }
+
+        return $boosts;
+    }
+
+    /**
+     * @throws InvalidArgumentException
+     */
+    private function buildBoost(string $fieldName, QueryBoost $queryBoost): Boost
+    {
+        $factor = $queryBoost->getFactor();
+
+        // Throw rather than clamp, as clamping would silently change ranking and hide a configuration mistake
+        if ($factor !== null && !($factor >= 0 && $factor <= 10)) {
+            throw new InvalidArgumentException(
+                sprintf('Boost factor for field "%s" must be between 0 and 10, got %s', $fieldName, $factor)
+            );
+        }
+
+        $boost = new Boost($queryBoost->getType());
+
+        if ($queryBoost->getType() === QueryBoost::TYPE_VALUE) {
+            $boost->setValue(array_map('strval', $queryBoost->getValues()));
+        } else {
+            $boost->setCenter((string) $queryBoost->getCenter());
+            $boost->setFunction($queryBoost->getFunction());
+        }
+
+        // Leaving the factor unset keeps the client's default
+        if ($factor !== null) {
+            $boost->setFactor($factor);
+        }
+
+        return $boost;
     }
 
     private function getFacetsFromQuery(Query $query): ?array
