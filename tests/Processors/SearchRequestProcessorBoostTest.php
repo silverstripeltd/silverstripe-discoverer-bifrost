@@ -4,15 +4,22 @@ namespace SilverStripe\DiscovererBifrost\Tests\Processors;
 
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
+use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Dev\SapphireTest;
-use SilverStripe\Discoverer\Query\Boost;
+use SilverStripe\Discoverer\Query\Boost\Boost;
+use SilverStripe\Discoverer\Query\Boost\BoostAdaptor as BoostAdaptorInterface;
+use SilverStripe\Discoverer\Query\Boost\NullBoostAdaptor;
+use SilverStripe\Discoverer\Query\Boost\ProximityBoost;
 use SilverStripe\Discoverer\Query\Query;
 use SilverStripe\DiscovererBifrost\Processors\SearchRequestProcessor;
+use SilverStripe\DiscovererBifrost\Query\Boost\BoostAdaptor;
+use SilverStripe\DiscovererBifrost\Tests\Query\Boost\BoostAdaptorTest;
 
 /**
  * Covers the query-time boosts sent on the Search Service request. The data provider is the payload spec.
  *
  * @see SearchRequestProcessor::getRequest()
+ * @see BoostAdaptorTest for the translation rules of individual boosts
  */
 class SearchRequestProcessorBoostTest extends SapphireTest
 {
@@ -55,22 +62,6 @@ class SearchRequestProcessorBoostTest extends SapphireTest
     }
 
     /**
-     * Proves values with gaps in their keys still serialise as a JSON list rather than an object.
-     */
-    public function testFilteredValuesSerialiseAsJsonList(): void
-    {
-        $query = Query::create('search string');
-        $query->addBoost('featured', Boost::value(array_filter(['a', '', 'b'])));
-
-        $request = SearchRequestProcessor::singleton()->getRequest($query);
-        $payload = json_decode(json_encode($request), true);
-        $value = $payload['boosts']['featured'][0]['value'];
-
-        $this->assertTrue(array_is_list($value));
-        $this->assertSame(['a', 'b'], $value);
-    }
-
-    /**
      * Proves a query without boosts sends no `boosts` key at all.
      */
     public function testNoBoostsOmitsKey(): void
@@ -83,18 +74,20 @@ class SearchRequestProcessorBoostTest extends SapphireTest
     }
 
     /**
-     * Proves a factor above the accepted range throws rather than being clamped.
+     * Proves a provider adaptor that ignores boosts, returning `null`, sends no `boosts` key.
      */
-    public function testFactorAboveRangeThrows(): void
+    public function testNullAdaptorOmitsKey(): void
     {
+        Injector::inst()->registerService(new NullBoostAdaptor(), BoostAdaptorInterface::class);
+
         $query = Query::create('search string');
-        $query->addBoost('popularity', Boost::value(['x'], 10.5));
+        $query->addBoost('featured', Boost::value(['true']));
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('popularity');
-        $this->expectExceptionMessage('between 0 and 10');
+        $request = SearchRequestProcessor::singleton()->getRequest($query);
+        $payload = json_decode(json_encode($request), true);
 
-        SearchRequestProcessor::singleton()->getRequest($query);
+        $this->assertArrayNotHasKey('boosts', $payload);
+        $this->assertNull($request->getBoosts());
     }
 
     /**
@@ -114,89 +107,17 @@ class SearchRequestProcessorBoostTest extends SapphireTest
     }
 
     /**
-     * Proves every Discoverer boost type and function constant maps to its lowercase Search Service string.
-     *
-     * @param callable(): Boost $makeBoost - builds the boost, lazily as the provider runs before the Injector manifest
-     * @param string $key - the payload key holding the mapped string
-     * @param string $expected - the lowercase API string
+     * Proves an out-of-range factor makes the request throw, naming the field and the allowed range.
      */
-    #[DataProvider('constantMappingProvider')]
-    public function testConstantsMapToApiStrings(callable $makeBoost, string $key, string $expected): void
+    public function testOutOfRangeFactorThrows(): void
     {
         $query = Query::create('search string');
-        $query->addBoost('field', $makeBoost());
+        $query->addBoost('popularity', Boost::value(['x'], 10.5));
 
-        $request = SearchRequestProcessor::singleton()->getRequest($query);
-        $payload = json_decode(json_encode($request), true);
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('/popularity.*between 0 and 10/');
 
-        $this->assertSame($expected, $payload['boosts']['field'][0][$key]);
-    }
-
-    /**
-     * Proves floats are sent as plain decimal strings, never in scientific notation.
-     *
-     * @param float $center - the proximity centre
-     * @param string $expected - the expected serialised centre
-     */
-    #[DataProvider('floatCenterProvider')]
-    public function testFloatCenterFormatting(float $center, string $expected): void
-    {
-        $query = Query::create('search string');
-        $query->addBoost('field', Boost::proximity($center, Boost::FUNCTION_LINEAR));
-
-        $request = SearchRequestProcessor::singleton()->getRequest($query);
-        $payload = json_decode(json_encode($request), true);
-
-        $this->assertSame($expected, $payload['boosts']['field'][0]['center']);
-    }
-
-    /**
-     * Supplies one case per Discoverer type and function constant.
-     *
-     * @return array<string, array{0: callable(): Boost, 1: string, 2: string}>
-     */
-    public static function constantMappingProvider(): array
-    {
-        return [
-            'TYPE_VALUE' => [static fn(): Boost => Boost::value(['x']), 'type', 'value'],
-            'TYPE_PROXIMITY' => [
-                static fn(): Boost => Boost::proximity(1, Boost::FUNCTION_LINEAR),
-                'type',
-                'proximity',
-            ],
-            'FUNCTION_GAUSSIAN' => [
-                static fn(): Boost => Boost::proximity(1, Boost::FUNCTION_GAUSSIAN),
-                'function',
-                'gaussian',
-            ],
-            'FUNCTION_EXPONENTIAL' => [
-                static fn(): Boost => Boost::proximity(1, Boost::FUNCTION_EXPONENTIAL),
-                'function',
-                'exponential',
-            ],
-            'FUNCTION_LINEAR' => [
-                static fn(): Boost => Boost::proximity(1, Boost::FUNCTION_LINEAR),
-                'function',
-                'linear',
-            ],
-        ];
-    }
-
-    /**
-     * Supplies float centres alongside their expected plain decimal strings.
-     *
-     * @return array<string, array{0: float, 1: string}>
-     */
-    public static function floatCenterProvider(): array
-    {
-        return [
-            'whole number' => [100.0, '100'],
-            'fraction' => [0.5, '0.5'],
-            'negative fraction' => [-2.5, '-2.5'],
-            'large, would use an exponent' => [1.0e15, '1000000000000000'],
-            'small, would use an exponent' => [0.00001, '0.00001'],
-            'many significant digits' => [1234567.123456789, '1234567.123456789'],
-        ];
+        SearchRequestProcessor::singleton()->getRequest($query);
     }
 
     /**
@@ -216,7 +137,12 @@ class SearchRequestProcessorBoostTest extends SapphireTest
                 ['rating' => [['type' => 'value', 'factor' => 3.0, 'value' => ['4', '5']]]],
             ],
             'proximity on number, gaussian, int center' => [
-                [['popularity', static fn(): Boost => Boost::proximity(50000, Boost::FUNCTION_GAUSSIAN, 0.5)]],
+                [
+                    [
+                        'popularity',
+                        static fn(): Boost => Boost::proximity(50000, ProximityBoost::FUNCTION_GAUSSIAN, 0.5),
+                    ],
+                ],
                 [
                     'popularity' => [
                         ['type' => 'proximity', 'factor' => 0.5, 'center' => '50000', 'function' => 'gaussian'],
@@ -224,7 +150,7 @@ class SearchRequestProcessorBoostTest extends SapphireTest
                 ],
             ],
             'proximity on number, whole-number float center' => [
-                [['popularity', static fn(): Boost => Boost::proximity(100.0, Boost::FUNCTION_LINEAR)]],
+                [['popularity', static fn(): Boost => Boost::proximity(100.0, ProximityBoost::FUNCTION_LINEAR)]],
                 [
                     'popularity' => [
                         ['type' => 'proximity', 'factor' => 1.0, 'center' => '100', 'function' => 'linear'],
@@ -232,7 +158,12 @@ class SearchRequestProcessorBoostTest extends SapphireTest
                 ],
             ],
             'proximity on date, relative center, exponential' => [
-                [['published_date', static fn(): Boost => Boost::proximity('now-7d', Boost::FUNCTION_EXPONENTIAL)]],
+                [
+                    [
+                        'published_date',
+                        static fn(): Boost => Boost::proximity('now-7d', ProximityBoost::FUNCTION_EXPONENTIAL),
+                    ],
+                ],
                 [
                     'published_date' => [
                         ['type' => 'proximity', 'factor' => 1.0, 'center' => 'now-7d', 'function' => 'exponential'],
@@ -243,7 +174,11 @@ class SearchRequestProcessorBoostTest extends SapphireTest
                 [
                     [
                         'location',
-                        static fn(): Boost => Boost::proximity('-36.8485,174.7633', Boost::FUNCTION_LINEAR, 10),
+                        static fn(): Boost => Boost::proximity(
+                            '-36.8485,174.7633',
+                            ProximityBoost::FUNCTION_LINEAR,
+                            10
+                        ),
                     ],
                 ],
                 [
@@ -272,7 +207,7 @@ class SearchRequestProcessorBoostTest extends SapphireTest
             'boosts across fields' => [
                 [
                     ['featured', static fn(): Boost => Boost::value(['true'], 5)],
-                    ['popularity', static fn(): Boost => Boost::proximity(100, Boost::FUNCTION_GAUSSIAN)],
+                    ['popularity', static fn(): Boost => Boost::proximity(100, ProximityBoost::FUNCTION_GAUSSIAN)],
                 ],
                 [
                     'featured' => [['type' => 'value', 'factor' => 5.0, 'value' => ['true']]],
@@ -292,6 +227,16 @@ class SearchRequestProcessorBoostTest extends SapphireTest
                 ],
             ],
         ];
+    }
+
+    /**
+     * Register the Search Service boost adaptor, as its config only applies when the service is configured.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Injector::inst()->registerService(new BoostAdaptor(), BoostAdaptorInterface::class);
     }
 
 }

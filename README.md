@@ -103,11 +103,14 @@ Debug::dump($results);
 Boosts added with `Query::addBoost()` are sent with the request as query-time boosts. The Silverstripe Search Service accepts a factor between 0 and 10; a factor outside that range means the request cannot be built, so the search fails, a warning is logged, and no results are returned. Calling `SearchRequestProcessor::getRequest()` directly throws an `InvalidArgumentException` instead:
 
 ```php
-use SilverStripe\Discoverer\Query\Boost;
+use SilverStripe\Discoverer\Query\Boost\Boost;
+use SilverStripe\Discoverer\Query\Boost\ProximityBoost;
 
 $query->addBoost('featured', Boost::value(['true'], 5));
-$query->addBoost('published_date', Boost::proximity('now-7d', Boost::FUNCTION_EXPONENTIAL));
+$query->addBoost('published_date', Boost::proximity('now-7d', ProximityBoost::FUNCTION_EXPONENTIAL));
 ```
+
+The translation into Search Service boosts lives in `SilverStripe\DiscovererBifrost\Query\Boost\BoostAdaptor`, which a project can replace through the Injector by registering its own class against `SilverStripe\Discoverer\Query\Boost\BoostAdaptor`. The config block that registers the override needs `After: discoverer-bifrost-adaptors`, or the module's own registration wins.
 
 ### Processing results
 
