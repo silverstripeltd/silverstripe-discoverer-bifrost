@@ -68,30 +68,30 @@ class SearchRequestProcessor
         }
 
         // Only send boosts when some are set, as an empty set would replace the engine's stored boosts
-        $boosts = $this->getBoostsFromQuery($query);
-
-        if ($boosts !== null) {
-            $request->setBoosts($boosts);
+        foreach ($this->getBoostsFromQuery($query) as $fieldName => $fieldBoosts) {
+            foreach ($fieldBoosts as $boost) {
+                // Cast, as PHP turns a numeric field name such as "2024" into an int array key
+                $request->addBoost((string) $fieldName, $boost);
+            }
         }
 
         return $request;
     }
 
     /**
-     * @return array<string, array<int, Boost>>|null
+     * Translates the boosts on the query into Search Service boosts, grouped by field name.
+     *
+     * @param Query $query - the query to read the boosts from
+     * @return array<int|string, array<int, Boost>> - the translated boosts, empty when the query has none
      * @throws InvalidArgumentException
      */
-    private function getBoostsFromQuery(Query $query): ?array
+    private function getBoostsFromQuery(Query $query): array
     {
-        if (!$query->getBoosts()) {
-            return null;
-        }
-
         $boosts = [];
 
         foreach ($query->getBoosts() as $fieldName => $fieldBoosts) {
             foreach ($fieldBoosts as $queryBoost) {
-                $boosts[$fieldName][] = $this->buildBoost($fieldName, $queryBoost);
+                $boosts[$fieldName][] = $this->buildBoost((string) $fieldName, $queryBoost);
             }
         }
 
@@ -99,6 +99,11 @@ class SearchRequestProcessor
     }
 
     /**
+     * Builds a single Search Service boost from a Discoverer boost.
+     *
+     * @param string $fieldName - the field being boosted, used in error messages
+     * @param QueryBoost $queryBoost - the Discoverer boost to translate
+     * @return Boost - the boost in the form the Search Service expects
      * @throws InvalidArgumentException
      */
     private function buildBoost(string $fieldName, QueryBoost $queryBoost): Boost
@@ -108,17 +113,21 @@ class SearchRequestProcessor
         // Throw rather than clamp, as clamping would silently change ranking and hide a configuration mistake
         if ($factor !== null && !($factor >= 0 && $factor <= 10)) {
             throw new InvalidArgumentException(
-                sprintf('Boost factor for field "%s" must be between 0 and 10, got %s', $fieldName, $factor)
+                sprintf(
+                    'Boost factor for field "%s" must be between 0 and 10, got %s',
+                    $fieldName,
+                    $this->formatFloat($factor)
+                )
             );
         }
 
-        $boost = new Boost($queryBoost->getType());
+        $boost = new Boost($this->getApiBoostType($queryBoost->getType()));
 
         if ($queryBoost->getType() === QueryBoost::TYPE_VALUE) {
-            $boost->setValue(array_map('strval', $queryBoost->getValues()));
+            $boost->setValue(array_map($this->formatScalar(...), $queryBoost->getValues()));
         } else {
-            $boost->setCenter((string) $queryBoost->getCenter());
-            $boost->setFunction($queryBoost->getFunction());
+            $boost->setCenter($this->formatScalar($queryBoost->getCenter()));
+            $boost->setFunction($this->getApiBoostFunction($queryBoost->getFunction()));
         }
 
         // Leaving the factor unset keeps the client's default
@@ -127,6 +136,87 @@ class SearchRequestProcessor
         }
 
         return $boost;
+    }
+
+    /**
+     * Maps a Discoverer boost type constant to the string the Search Service API expects.
+     *
+     * @param string $type - a `QueryBoost::TYPE_` constant
+     * @return string - the API boost type
+     * @throws InvalidArgumentException
+     */
+    private function getApiBoostType(string $type): string
+    {
+        return match ($type) {
+            QueryBoost::TYPE_VALUE => 'value',
+            QueryBoost::TYPE_PROXIMITY => 'proximity',
+            default => throw new InvalidArgumentException(sprintf('Unknown boost type "%s"', $type)),
+        };
+    }
+
+    /**
+     * Maps a Discoverer boost function constant to the string the Search Service API expects.
+     *
+     * @param string|null $function - a `QueryBoost::FUNCTION_` constant
+     * @return string - the API boost function
+     * @throws InvalidArgumentException
+     */
+    private function getApiBoostFunction(?string $function): string
+    {
+        return match ($function) {
+            QueryBoost::FUNCTION_GAUSSIAN => 'gaussian',
+            QueryBoost::FUNCTION_EXPONENTIAL => 'exponential',
+            QueryBoost::FUNCTION_LINEAR => 'linear',
+            default => throw new InvalidArgumentException(sprintf('Unknown boost function "%s"', (string) $function)),
+        };
+    }
+
+    /**
+     * Converts a boost value or centre to the string the API expects, formatting floats as plain decimals.
+     *
+     * @param string|int|float $value - the value to convert
+     * @return string - the value as a string
+     * @throws InvalidArgumentException
+     */
+    private function formatScalar(string|int|float $value): string
+    {
+        return is_float($value) ? $this->formatFloat($value) : (string) $value;
+    }
+
+    /**
+     * Formats a float as a plain decimal string: no exponent, shortest round-trip form, no trailing zeros.
+     *
+     * @param float $value - the float to format
+     * @return string - the plain decimal representation
+     * @throws InvalidArgumentException
+     */
+    private function formatFloat(float $value): string
+    {
+        if (!is_finite($value)) {
+            throw new InvalidArgumentException('Boost numbers must be finite');
+        }
+
+        // `var_export()` gives the shortest round-trip digits and ignores the locale, but may use an exponent
+        $repr = var_export($value, true);
+
+        if (preg_match('/^(-?)(\d+)(?:\.(\d+))?E([+-]\d+)$/i', $repr, $m) === 1) {
+            $digits = $m[2] . $m[3];
+            $pointAt = strlen($m[2]) + (int) $m[4];
+
+            if ($pointAt <= 0) {
+                $repr = $m[1] . '0.' . str_repeat('0', -$pointAt) . $digits;
+            } elseif ($pointAt >= strlen($digits)) {
+                $repr = $m[1] . $digits . str_repeat('0', $pointAt - strlen($digits));
+            } else {
+                $repr = $m[1] . substr($digits, 0, $pointAt) . '.' . substr($digits, $pointAt);
+            }
+        }
+
+        if (str_contains($repr, '.')) {
+            $repr = rtrim(rtrim($repr, '0'), '.');
+        }
+
+        return $repr === '-0' ? '0' : $repr;
     }
 
     private function getFacetsFromQuery(Query $query): ?array

@@ -335,7 +335,11 @@ class SearchRequestProcessorTest extends SapphireTest
         $this->assertInstanceOf(Tags::class, $request->getAnalytics());
         $this->assertIsArray($request->getSorts());
         $this->assertEquals(7, $request->getPrecision());
-        $this->assertIsArray($request->getBoosts());
+        $boosts = $request->getBoosts();
+        $this->assertSame(['field4'], array_keys($boosts));
+        $this->assertCount(1, $boosts['field4']);
+        $this->assertSame(['value4'], $boosts['field4'][0]->getValue());
+        $this->assertSame(2.0, $boosts['field4'][0]->getFactor());
     }
 
     protected function setUp(): void

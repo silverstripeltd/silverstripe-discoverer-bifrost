@@ -18,9 +18,11 @@ class SearchRequestProcessorBoostTest extends SapphireTest
 {
 
     /**
-     * @param array<int, array{0: string, 1: callable(): Boost}> $calls Boosts are built lazily, as the provider runs
-     *     before the Injector manifest exists
-     * @param array<string, mixed> $expected
+     * Proves each set of Discoverer boosts serialises to the expected Search Service `boosts` payload.
+     *
+     * @param array<int, array{0: string, 1: callable(): Boost}> $calls - field and boost factory pairs; boosts are
+     *     built lazily, as the provider runs before the Injector manifest exists
+     * @param array<string, mixed> $expected - the expected serialised `boosts` payload
      */
     #[DataProvider('boostPayloadProvider')]
     public function testBoostPayload(array $calls, array $expected): void
@@ -52,6 +54,9 @@ class SearchRequestProcessorBoostTest extends SapphireTest
         $this->assertStringNotContainsString('"operation"', json_encode($payload['boosts']));
     }
 
+    /**
+     * Proves values with gaps in their keys still serialise as a JSON list rather than an object.
+     */
     public function testFilteredValuesSerialiseAsJsonList(): void
     {
         $query = Query::create('search string');
@@ -65,6 +70,9 @@ class SearchRequestProcessorBoostTest extends SapphireTest
         $this->assertSame(['a', 'b'], $value);
     }
 
+    /**
+     * Proves a query without boosts sends no `boosts` key at all.
+     */
     public function testNoBoostsOmitsKey(): void
     {
         $request = SearchRequestProcessor::singleton()->getRequest(Query::create('search string'));
@@ -74,6 +82,9 @@ class SearchRequestProcessorBoostTest extends SapphireTest
         $this->assertNull($request->getBoosts());
     }
 
+    /**
+     * Proves a factor above the accepted range throws rather than being clamped.
+     */
     public function testFactorAboveRangeThrows(): void
     {
         $query = Query::create('search string');
@@ -87,6 +98,110 @@ class SearchRequestProcessorBoostTest extends SapphireTest
     }
 
     /**
+     * Proves a numeric field name, which PHP turns into an int array key, is still sent as a string key.
+     */
+    public function testNumericFieldNameSerialisesAsStringKey(): void
+    {
+        $query = Query::create('search string');
+        $query->addBoost('2024', Boost::value(['x']));
+
+        $request = SearchRequestProcessor::singleton()->getRequest($query);
+        $payload = json_decode(json_encode($request), true);
+
+        $this->assertSame(['2024'], array_map('strval', array_keys($payload['boosts'])));
+        $this->assertSame('value', $payload['boosts']['2024'][0]['type']);
+        $this->assertSame(['x'], $payload['boosts']['2024'][0]['value']);
+    }
+
+    /**
+     * Proves every Discoverer boost type and function constant maps to its lowercase Search Service string.
+     *
+     * @param callable(): Boost $makeBoost - builds the boost, lazily as the provider runs before the Injector manifest
+     * @param string $key - the payload key holding the mapped string
+     * @param string $expected - the lowercase API string
+     */
+    #[DataProvider('constantMappingProvider')]
+    public function testConstantsMapToApiStrings(callable $makeBoost, string $key, string $expected): void
+    {
+        $query = Query::create('search string');
+        $query->addBoost('field', $makeBoost());
+
+        $request = SearchRequestProcessor::singleton()->getRequest($query);
+        $payload = json_decode(json_encode($request), true);
+
+        $this->assertSame($expected, $payload['boosts']['field'][0][$key]);
+    }
+
+    /**
+     * Proves floats are sent as plain decimal strings, never in scientific notation.
+     *
+     * @param float $center - the proximity centre
+     * @param string $expected - the expected serialised centre
+     */
+    #[DataProvider('floatCenterProvider')]
+    public function testFloatCenterFormatting(float $center, string $expected): void
+    {
+        $query = Query::create('search string');
+        $query->addBoost('field', Boost::proximity($center, Boost::FUNCTION_LINEAR));
+
+        $request = SearchRequestProcessor::singleton()->getRequest($query);
+        $payload = json_decode(json_encode($request), true);
+
+        $this->assertSame($expected, $payload['boosts']['field'][0]['center']);
+    }
+
+    /**
+     * Supplies one case per Discoverer type and function constant.
+     *
+     * @return array<string, array{0: callable(): Boost, 1: string, 2: string}>
+     */
+    public static function constantMappingProvider(): array
+    {
+        return [
+            'TYPE_VALUE' => [static fn(): Boost => Boost::value(['x']), 'type', 'value'],
+            'TYPE_PROXIMITY' => [
+                static fn(): Boost => Boost::proximity(1, Boost::FUNCTION_LINEAR),
+                'type',
+                'proximity',
+            ],
+            'FUNCTION_GAUSSIAN' => [
+                static fn(): Boost => Boost::proximity(1, Boost::FUNCTION_GAUSSIAN),
+                'function',
+                'gaussian',
+            ],
+            'FUNCTION_EXPONENTIAL' => [
+                static fn(): Boost => Boost::proximity(1, Boost::FUNCTION_EXPONENTIAL),
+                'function',
+                'exponential',
+            ],
+            'FUNCTION_LINEAR' => [
+                static fn(): Boost => Boost::proximity(1, Boost::FUNCTION_LINEAR),
+                'function',
+                'linear',
+            ],
+        ];
+    }
+
+    /**
+     * Supplies float centres alongside their expected plain decimal strings.
+     *
+     * @return array<string, array{0: float, 1: string}>
+     */
+    public static function floatCenterProvider(): array
+    {
+        return [
+            'whole number' => [100.0, '100'],
+            'fraction' => [0.5, '0.5'],
+            'negative fraction' => [-2.5, '-2.5'],
+            'large, would use an exponent' => [1.0e15, '1000000000000000'],
+            'small, would use an exponent' => [0.00001, '0.00001'],
+            'many significant digits' => [1234567.123456789, '1234567.123456789'],
+        ];
+    }
+
+    /**
+     * Supplies each set of boosts alongside the payload it must serialise to.
+     *
      * @return array<string, array{0: array<int, array{0: string, 1: callable(): Boost}>, 1: array<string, mixed>}>
      */
     public static function boostPayloadProvider(): array
