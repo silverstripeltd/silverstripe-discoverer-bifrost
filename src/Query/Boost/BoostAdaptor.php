@@ -44,8 +44,10 @@ class BoostAdaptor implements BoostAdaptorInterface
         if ($factor !== null && !($factor >= self::MIN_FACTOR && $factor <= self::MAX_FACTOR)) {
             throw new InvalidArgumentException(
                 sprintf(
-                    'Boost factor for field "%s" must be between 0 and 10, got %s',
+                    'Boost factor for field "%s" must be between %s and %s, got %s',
                     $field,
+                    $this->formatFloat(self::MIN_FACTOR),
+                    $this->formatFloat(self::MAX_FACTOR),
                     is_finite($factor) ? $this->formatFloat($factor) : (string) $factor
                 )
             );
