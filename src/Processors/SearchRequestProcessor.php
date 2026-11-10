@@ -2,9 +2,11 @@
 
 namespace SilverStripe\DiscovererBifrost\Processors;
 
+use InvalidArgumentException;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Discoverer\Query\Filter\Criteria;
 use SilverStripe\Discoverer\Query\Query;
+use Silverstripe\Search\Client\Model\Field\Boost;
 use Silverstripe\Search\Client\Model\Field\ResultField;
 use Silverstripe\Search\Client\Model\Field\ResultFieldRaw;
 use Silverstripe\Search\Client\Model\Field\ResultFieldSnippet;
@@ -64,7 +66,36 @@ class SearchRequestProcessor
             $request->setPrecision($query->getPrecision());
         }
 
+        $boosts = $this->getBoostsFromQuery($query);
+
+        // Only send boosts when some are set, as an empty set would replace the engine's stored boosts
+        if ($boosts) {
+            foreach ($boosts as $fieldName => $fieldBoosts) {
+                foreach ($fieldBoosts as $boost) {
+                    // Cast, as PHP turns a numeric field name such as "2024" into an int array key
+                    $request->addBoost((string) $fieldName, $boost);
+                }
+            }
+        }
+
         return $request;
+    }
+
+    /**
+     * Get the boosts on the query, translated into Search Service boosts by the registered `BoostAdaptor`.
+     *
+     * @param Query $query the query to read the boosts from
+     * @return array<int|string, array<int, Boost>>|null - the translated boosts grouped by field name, or `null`
+     *     when there are none or the adaptor ignores them
+     * @throws InvalidArgumentException When the adaptor cannot translate a boost
+     */
+    private function getBoostsFromQuery(Query $query): ?array
+    {
+        if (!$query->getBoosts()) {
+            return null;
+        }
+
+        return $query->getBoostCollection()->getPreparedBoosts();
     }
 
     private function getFacetsFromQuery(Query $query): ?array

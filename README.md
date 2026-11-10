@@ -100,6 +100,23 @@ $results = $service->search($query, '<suffix>');
 Debug::dump($results);
 ```
 
+Boosts added with `Query::addBoost()` are sent with the request as query-time boosts. The Silverstripe Search Service accepts a factor between 0 and 10. A factor outside that range throws an `InvalidArgumentException` from your own code, so a mistake shows up as an error rather than as a search that quietly returns nothing:
+
+* a negative or non-finite factor throws when the boost is created, from `Boost::value()` or `Boost::proximity()`
+* a factor above 10 throws when the boost is added, from `Query::addBoost()` or `Query::setBoosts()`
+
+**Query-time boosts replace the engine's stored boosts.** When a search sends any boost, the Search Service ignores the boosts configured on the engine for that search, so include every boost you want applied, not just the new one. A query with no boosts uses the stored boosts as normal, and `Query::setBoosts([])` returns a query to them.
+
+```php
+use SilverStripe\Discoverer\Query\Boost\Boost;
+use SilverStripe\Discoverer\Query\Boost\ProximityBoost;
+
+$query->addBoost('featured', Boost::value(['true'], 5));
+$query->addBoost('published_date', Boost::proximity('now-7d', ProximityBoost::FUNCTION_EXPONENTIAL));
+```
+
+The translation into Search Service boosts lives in `SilverStripe\DiscovererBifrost\Query\Boost\BoostAdaptor`, which a project can replace through the Injector by registering its own class against `SilverStripe\Discoverer\Query\Boost\BoostAdaptor`. The config block that registers the override needs `After: discoverer-bifrost-adaptors`, or the module's own registration wins.
+
 ### Processing results
 
 For this quick example, we'll assume we had a couple of fields in our engine: `title`, `content` (more on fields in [Understanding fields and results](#understanding-fields-and-results))

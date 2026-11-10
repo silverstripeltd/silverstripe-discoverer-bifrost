@@ -5,6 +5,8 @@ namespace SilverStripe\DiscovererBifrost\Tests\Processors;
 use ReflectionMethod;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Dev\SapphireTest;
+use SilverStripe\Discoverer\Query\Boost\Boost;
+use SilverStripe\Discoverer\Query\Boost\BoostAdaptor as BoostAdaptorInterface;
 use SilverStripe\Discoverer\Query\Facet\Facet;
 use SilverStripe\Discoverer\Query\Facet\FacetAdaptor as FacetAdaptorInterface;
 use SilverStripe\Discoverer\Query\Filter\Criteria;
@@ -13,6 +15,7 @@ use SilverStripe\Discoverer\Query\Filter\Criterion;
 use SilverStripe\Discoverer\Query\Filter\CriterionAdaptor as CriterionAdaptorInterface;
 use SilverStripe\Discoverer\Query\Query;
 use SilverStripe\DiscovererBifrost\Processors\SearchRequestProcessor;
+use SilverStripe\DiscovererBifrost\Query\Boost\BoostAdaptor;
 use SilverStripe\DiscovererBifrost\Query\Facet\FacetAdaptor;
 use SilverStripe\DiscovererBifrost\Query\Filter\CriteriaAdaptor;
 use SilverStripe\DiscovererBifrost\Query\Filter\CriterionAdaptor;
@@ -319,6 +322,7 @@ class SearchRequestProcessorTest extends SapphireTest
         $query->setPagination(10, 20);
         $query->addTag('tag1');
         $query->setPrecision(7);
+        $query->addBoost('field4', Boost::value(['value4'], 2));
 
         // This test is really just checking that each method was invoked, as the individual methods are all tested
         // in depth above
@@ -333,6 +337,11 @@ class SearchRequestProcessorTest extends SapphireTest
         $this->assertInstanceOf(Tags::class, $request->getAnalytics());
         $this->assertIsArray($request->getSorts());
         $this->assertEquals(7, $request->getPrecision());
+        $boosts = $request->getBoosts();
+        $this->assertSame(['field4'], array_keys($boosts));
+        $this->assertCount(1, $boosts['field4']);
+        $this->assertSame(['value4'], $boosts['field4'][0]->getValue());
+        $this->assertSame(2.0, $boosts['field4'][0]->getFactor());
     }
 
     protected function setUp(): void
@@ -342,6 +351,7 @@ class SearchRequestProcessorTest extends SapphireTest
         Injector::inst()->registerService(new CriteriaAdaptor(), CriteriaAdaptorInterface::class);
         Injector::inst()->registerService(new CriterionAdaptor(), CriterionAdaptorInterface::class);
         Injector::inst()->registerService(new FacetAdaptor(), FacetAdaptorInterface::class);
+        Injector::inst()->registerService(new BoostAdaptor(), BoostAdaptorInterface::class);
     }
 
 }
