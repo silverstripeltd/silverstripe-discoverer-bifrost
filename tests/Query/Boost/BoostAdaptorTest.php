@@ -87,7 +87,34 @@ class BoostAdaptorTest extends SapphireTest
     }
 
     /**
-     * Proves a factor outside 0 to 10 throws rather than being clamped.
+     * Proves validation rejects a factor outside 0 to 10 rather than clamping it.
+     *
+     * @param callable(): Boost $makeBoost - builds the boost with the out-of-range factor
+     */
+    #[DataProvider('outOfRangeFactorProvider')]
+    public function testValidateBoostRejectsOutOfRangeFactor(callable $makeBoost): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('/popularity.*between 0 and 10/');
+
+        (new BoostAdaptor())->validateBoost('popularity', $makeBoost());
+    }
+
+    /**
+     * Proves validation rejects a `Boost` subclass the adaptor does not know.
+     */
+    public function testValidateBoostRejectsUnknownBoostSubclass(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unsupported boost type');
+
+        (new BoostAdaptor())->validateBoost('field', new class extends Boost {
+        });
+    }
+
+    /**
+     * Proves preparing still rejects an out-of-range factor from a collection with no adaptor, which never
+     * validated its boosts when they were added.
      *
      * @param callable(): Boost $makeBoost - builds the boost with the out-of-range factor
      */
@@ -98,14 +125,14 @@ class BoostAdaptorTest extends SapphireTest
         $collection->addBoost('popularity', $makeBoost());
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('popularity');
-        $this->expectExceptionMessage('between 0 and 10');
+        $this->expectExceptionMessageMatches('/popularity.*between 0 and 10/');
 
         (new BoostAdaptor())->prepareBoosts($collection);
     }
 
     /**
-     * Proves a `Boost` subclass the adaptor does not know throws rather than being sent half-built.
+     * Proves preparing still rejects an unknown `Boost` subclass from a collection with no adaptor, rather than
+     * sending it half-built.
      */
     public function testUnknownBoostSubclassThrows(): void
     {

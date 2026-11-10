@@ -100,7 +100,10 @@ $results = $service->search($query, '<suffix>');
 Debug::dump($results);
 ```
 
-Boosts added with `Query::addBoost()` are sent with the request as query-time boosts. The Silverstripe Search Service accepts a factor between 0 and 10; a factor outside that range means the request cannot be built, so the search fails, a warning is logged, and no results are returned. Calling `SearchRequestProcessor::getRequest()` directly throws an `InvalidArgumentException` instead:
+Boosts added with `Query::addBoost()` are sent with the request as query-time boosts. The Silverstripe Search Service accepts a factor between 0 and 10. A factor outside that range throws an `InvalidArgumentException` from your own code, so a mistake shows up as an error rather than as a search that quietly returns nothing:
+
+* a negative or non-finite factor throws when the boost is created, from `Boost::value()` or `Boost::proximity()`
+* a factor above 10 throws when the boost is added, from `Query::addBoost()` or `Query::setBoosts()`
 
 ```php
 use SilverStripe\Discoverer\Query\Boost\Boost;

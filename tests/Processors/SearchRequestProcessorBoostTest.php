@@ -107,17 +107,17 @@ class SearchRequestProcessorBoostTest extends SapphireTest
     }
 
     /**
-     * Proves an out-of-range factor makes the request throw, naming the field and the allowed range.
+     * Proves an out-of-range factor throws when it is added to the query, naming the field and the allowed range,
+     * rather than when the request is built inside the search's catch-all.
      */
-    public function testOutOfRangeFactorThrows(): void
+    public function testOutOfRangeFactorThrowsWhenAdded(): void
     {
         $query = Query::create('search string');
-        $query->addBoost('popularity', Boost::value(['x'], 10.5));
 
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessageMatches('/popularity.*between 0 and 10/');
 
-        SearchRequestProcessor::singleton()->getRequest($query);
+        $query->addBoost('popularity', Boost::value(['x'], 10.5));
     }
 
     /**

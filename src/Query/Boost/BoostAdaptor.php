@@ -29,6 +29,36 @@ class BoostAdaptor implements BoostAdaptorInterface
     public const float MAX_FACTOR = 10.0;
 
     /**
+     * Check that the Search Service can accept a boost: a supported boost type, with a factor between 0 and 10.
+     *
+     * @param string $field the name of the field being boosted, used in error messages
+     * @param Boost $boost the boost to check
+     * @throws InvalidArgumentException When the factor is out of range or the boost type is unsupported
+     */
+    public function validateBoost(string $field, Boost $boost): void
+    {
+        $factor = $boost->getFactor();
+
+        // Throw rather than clamp, as clamping would silently change ranking and hide a configuration mistake;
+        // the negated range check also rejects `NAN`, which fails every comparison
+        if ($factor !== null && !($factor >= self::MIN_FACTOR && $factor <= self::MAX_FACTOR)) {
+            throw new InvalidArgumentException(
+                sprintf(
+                    'Boost factor for field "%s" must be between 0 and 10, got %s',
+                    $field,
+                    is_finite($factor) ? $this->formatFloat($factor) : (string) $factor
+                )
+            );
+        }
+
+        if (!$boost instanceof ValueBoost && !$boost instanceof ProximityBoost) {
+            throw new InvalidArgumentException(
+                sprintf('Unsupported boost type %s for field "%s"', get_debug_type($boost), $field)
+            );
+        }
+    }
+
+    /**
      * Translate the boosts in a collection into Search Service boosts, grouped by field name.
      *
      * @param BoostCollection $boostCollection the boosts to translate, keyed by field name
@@ -59,32 +89,19 @@ class BoostAdaptor implements BoostAdaptorInterface
      */
     private function prepareBoost(string $fieldName, Boost $boost): ApiBoost
     {
-        $factor = $boost->getFactor();
-
-        // Throw rather than clamp, as clamping would silently change ranking and hide a configuration mistake;
-        // the negated range check also rejects `NAN`, which fails every comparison
-        if ($factor !== null && !($factor >= self::MIN_FACTOR && $factor <= self::MAX_FACTOR)) {
-            throw new InvalidArgumentException(
-                sprintf(
-                    'Boost factor for field "%s" must be between 0 and 10, got %s',
-                    $fieldName,
-                    is_finite($factor) ? $this->formatFloat($factor) : (string) $factor
-                )
-            );
-        }
+        // Checked again here, as a collection built without an adaptor never validated its boosts on add
+        $this->validateBoost($fieldName, $boost);
 
         if ($boost instanceof ValueBoost) {
             $apiBoost = new ApiBoost('value');
             $apiBoost->setValue(array_map($this->formatScalar(...), $boost->getValues()));
-        } elseif ($boost instanceof ProximityBoost) {
+        } else {
             $apiBoost = new ApiBoost('proximity');
             $apiBoost->setCenter($this->formatScalar($boost->getCenter()));
             $apiBoost->setFunction($this->getApiFunction($boost->getFunction()));
-        } else {
-            throw new InvalidArgumentException(
-                sprintf('Unsupported boost type %s for field "%s"', get_debug_type($boost), $fieldName)
-            );
         }
+
+        $factor = $boost->getFactor();
 
         // Leaving the factor unset keeps the client's default
         if ($factor !== null) {
