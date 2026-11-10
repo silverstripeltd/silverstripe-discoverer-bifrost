@@ -2,18 +2,22 @@
 
 namespace SilverStripe\DiscovererBifrost\Tests\Processors;
 
+use ArrayObject;
 use InvalidArgumentException;
+use LogicException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\Discoverer\Query\Boost\Boost;
 use SilverStripe\Discoverer\Query\Boost\BoostAdaptor as BoostAdaptorInterface;
+use SilverStripe\Discoverer\Query\Boost\BoostCollection;
 use SilverStripe\Discoverer\Query\Boost\NullBoostAdaptor;
 use SilverStripe\Discoverer\Query\Boost\ProximityBoost;
 use SilverStripe\Discoverer\Query\Query;
 use SilverStripe\DiscovererBifrost\Processors\SearchRequestProcessor;
 use SilverStripe\DiscovererBifrost\Query\Boost\BoostAdaptor;
 use SilverStripe\DiscovererBifrost\Tests\Query\Boost\BoostAdaptorTest;
+use TypeError;
 
 /**
  * Covers the query-time boosts sent on the Search Service request. The data provider is the payload spec.
@@ -71,6 +75,59 @@ class SearchRequestProcessorBoostTest extends SapphireTest
 
         $this->assertArrayNotHasKey('boosts', $payload);
         $this->assertNull($request->getBoosts());
+    }
+
+    /**
+     * Proves a query without boosts never asks the adaptor to prepare them.
+     */
+    public function testNoBoostsSkipsAdaptor(): void
+    {
+        Injector::inst()->registerService(new class extends NullBoostAdaptor {
+
+            /**
+             * Fail the test if the processor asks for prepared boosts.
+             *
+             * @param BoostCollection $boostCollection - the boosts the processor asked to prepare
+             * @return mixed - never returns
+             */
+            public function prepareBoosts(BoostCollection $boostCollection): mixed
+            {
+                throw new LogicException('The adaptor should not be called for a query without boosts');
+            }
+
+        }, BoostAdaptorInterface::class);
+
+        $request = SearchRequestProcessor::singleton()->getRequest(Query::create('search string'));
+
+        $this->assertNull($request->getBoosts());
+    }
+
+    /**
+     * Proves an adaptor returning something other than an array or `null` fails loudly instead of sending no boosts.
+     */
+    public function testNonArrayAdaptorResultThrows(): void
+    {
+        Injector::inst()->registerService(new class extends NullBoostAdaptor {
+
+            /**
+             * Return prepared boosts in the wrong shape.
+             *
+             * @param BoostCollection $boostCollection - the boosts to prepare
+             * @return mixed - an `ArrayObject` where an array is expected
+             */
+            public function prepareBoosts(BoostCollection $boostCollection): mixed
+            {
+                return new ArrayObject();
+            }
+
+        }, BoostAdaptorInterface::class);
+
+        $query = Query::create('search string');
+        $query->addBoost('featured', Boost::value(['true']));
+
+        $this->expectException(TypeError::class);
+
+        SearchRequestProcessor::singleton()->getRequest($query);
     }
 
     /**

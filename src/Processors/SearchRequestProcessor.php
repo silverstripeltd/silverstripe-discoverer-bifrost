@@ -66,11 +66,15 @@ class SearchRequestProcessor
             $request->setPrecision($query->getPrecision());
         }
 
+        $boosts = $this->getBoostsFromQuery($query);
+
         // Only send boosts when some are set, as an empty set would replace the engine's stored boosts
-        foreach ($this->getBoostsFromQuery($query) as $fieldName => $fieldBoosts) {
-            foreach ($fieldBoosts as $boost) {
-                // Cast, as PHP turns a numeric field name such as "2024" into an int array key
-                $request->addBoost((string) $fieldName, $boost);
+        if ($boosts) {
+            foreach ($boosts as $fieldName => $fieldBoosts) {
+                foreach ($fieldBoosts as $boost) {
+                    // Cast, as PHP turns a numeric field name such as "2024" into an int array key
+                    $request->addBoost((string) $fieldName, $boost);
+                }
             }
         }
 
@@ -81,16 +85,17 @@ class SearchRequestProcessor
      * Get the boosts on the query, translated into Search Service boosts by the registered `BoostAdaptor`.
      *
      * @param Query $query the query to read the boosts from
-     * @return array<int|string, array<int, Boost>> - the translated boosts grouped by field name, empty when there
-     *     are none or the adaptor ignores them
+     * @return array<int|string, array<int, Boost>>|null - the translated boosts grouped by field name, or `null`
+     *     when there are none or the adaptor ignores them
      * @throws InvalidArgumentException When the adaptor cannot translate a boost
      */
-    private function getBoostsFromQuery(Query $query): array
+    private function getBoostsFromQuery(Query $query): ?array
     {
-        $boosts = $query->getBoostCollection()->getPreparedBoosts();
+        if (!$query->getBoosts()) {
+            return null;
+        }
 
-        // `NullBoostAdaptor` returns `null`, and any other non-array result has nothing this request can send
-        return is_array($boosts) ? $boosts : [];
+        return $query->getBoostCollection()->getPreparedBoosts();
     }
 
     private function getFacetsFromQuery(Query $query): ?array
